@@ -1299,7 +1299,7 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
 
       {/* Super Admin Purge Confirmation Modal */}
       {isPurgeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
           <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl text-slate-800 dark:text-slate-200">
             <div className="flex items-start justify-between gap-3 border-b border-rose-100 dark:border-rose-900/40 pb-4">
               <div className="flex items-center gap-3">
@@ -1411,7 +1411,7 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
 
       {/* 2FA Authenticator Setup Modal */}
       {is2FAModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl text-slate-200">
             <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-4">
               <div className="flex items-center gap-3">
@@ -1541,7 +1541,7 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
 
       {/* Prepare for Production Launch Modal */}
       {isLaunchModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
           <div className="bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-800/60 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl text-slate-800 dark:text-slate-200">
             <div className="flex items-start justify-between gap-3 border-b border-cyan-100 dark:border-cyan-900/40 pb-4">
               <div className="flex items-center gap-3">
@@ -1619,7 +1619,7 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
 
       {/* Factory Reset to Zero (Relaunch New School - Genesis) Modal */}
       {isFactoryResetModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
           <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/70 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl text-slate-800 dark:text-slate-200">
             <div className="flex items-start justify-between gap-3 border-b border-rose-100 dark:border-rose-900/40 pb-4">
               <div className="flex items-center gap-3">

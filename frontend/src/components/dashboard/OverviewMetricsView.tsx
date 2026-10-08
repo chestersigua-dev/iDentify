@@ -832,132 +832,134 @@ export default function OverviewMetricsView({
                 </div>
               </div>
 
-              {/* Responsive SVG Area Chart */}
+              {/* Responsive Scaled SVG Area Chart */}
               <div className="relative bg-slate-950 p-4 rounded-2xl border border-slate-800">
-                <svg
-                  viewBox="0 0 600 180"
-                  className="w-full h-44 overflow-visible"
-                  preserveAspectRatio="none"
-                >
-                  <defs>
-                    <linearGradient id="attendanceAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity="0.45" />
-                      <stop offset="80%" stopColor="#10b981" stopOpacity="0.05" />
-                      <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-                    </linearGradient>
-                    <linearGradient id="attendanceLineGrad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#06b6d4" />
-                      <stop offset="50%" stopColor="#10b981" />
-                      <stop offset="100%" stopColor="#3b82f6" />
-                    </linearGradient>
-                  </defs>
+                <div className="relative w-full aspect-[2.4/1] sm:aspect-[2.8/1] md:aspect-[3.2/1] min-h-[190px] max-h-[300px] flex items-center justify-center">
+                  <svg
+                    viewBox="0 0 640 200"
+                    className="w-full h-full overflow-visible"
+                    preserveAspectRatio="xMidYMid meet"
+                  >
+                    <defs>
+                      <linearGradient id="attendanceAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.45" />
+                        <stop offset="80%" stopColor="#10b981" stopOpacity="0.05" />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                      </linearGradient>
+                      <linearGradient id="attendanceLineGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#06b6d4" />
+                        <stop offset="50%" stopColor="#10b981" />
+                        <stop offset="100%" stopColor="#3b82f6" />
+                      </linearGradient>
+                    </defs>
 
-                  {/* Horizontal Guide Lines */}
-                  {[90, 95, 100].map((val, idx) => {
-                    const y = 150 - (val - 88) * 10;
-                    return (
-                      <g key={val}>
-                        <line
-                          x1="40"
-                          y1={y}
-                          x2="580"
-                          y2={y}
-                          stroke="#334155"
-                          strokeDasharray="4 4"
-                          strokeWidth="1"
-                        />
-                        <text
-                          x="32"
-                          y={y + 3}
-                          fill="#64748b"
-                          fontSize="9"
-                          fontFamily="monospace"
-                          textAnchor="end"
+                    {/* Horizontal Guide Lines */}
+                    {[90, 95, 100].map((val) => {
+                      const y = 155 - (val - 88) * 10;
+                      return (
+                        <g key={val}>
+                          <line
+                            x1="45"
+                            y1={y}
+                            x2="605"
+                            y2={y}
+                            stroke="#334155"
+                            strokeDasharray="4 4"
+                            strokeWidth="1"
+                          />
+                          <text
+                            x="38"
+                            y={y + 3}
+                            fill="#64748b"
+                            fontSize="9.5"
+                            fontFamily="monospace"
+                            textAnchor="end"
+                          >
+                            {val}%
+                          </text>
+                        </g>
+                      );
+                    })}
+
+                    {/* Area Fill */}
+                    <polygon
+                      points={`
+                        75,${155 - (attendanceTrendData[0].rate - 88) * 10}
+                        200,${155 - (attendanceTrendData[1].rate - 88) * 10}
+                        325,${155 - (attendanceTrendData[2].rate - 88) * 10}
+                        450,${155 - (attendanceTrendData[3].rate - 88) * 10}
+                        575,${155 - (attendanceTrendData[4].rate - 88) * 10}
+                        575,155
+                        75,155
+                      `}
+                      fill="url(#attendanceAreaGrad)"
+                    />
+
+                    {/* Polyline */}
+                    <polyline
+                      points={`
+                        75,${155 - (attendanceTrendData[0].rate - 88) * 10}
+                        200,${155 - (attendanceTrendData[1].rate - 88) * 10}
+                        325,${155 - (attendanceTrendData[2].rate - 88) * 10}
+                        450,${155 - (attendanceTrendData[3].rate - 88) * 10}
+                        575,${155 - (attendanceTrendData[4].rate - 88) * 10}
+                      `}
+                      fill="none"
+                      stroke="url(#attendanceLineGrad)"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* Data Points */}
+                    {attendanceTrendData.map((d, idx) => {
+                      const cx = 75 + idx * 125;
+                      const cy = 155 - (d.rate - 88) * 10;
+                      const isHovered = hoveredTrendDay === idx;
+
+                      return (
+                        <g
+                          key={d.day}
+                          className="cursor-pointer"
+                          onMouseEnter={() => setHoveredTrendDay(idx)}
+                          onMouseLeave={() => setHoveredTrendDay(null)}
                         >
-                          {val}%
-                        </text>
-                      </g>
-                    );
-                  })}
-
-                  {/* Area Fill */}
-                  <polygon
-                    points={`
-                      50,${150 - (attendanceTrendData[0].rate - 88) * 10}
-                      175,${150 - (attendanceTrendData[1].rate - 88) * 10}
-                      300,${150 - (attendanceTrendData[2].rate - 88) * 10}
-                      425,${150 - (attendanceTrendData[3].rate - 88) * 10}
-                      550,${150 - (attendanceTrendData[4].rate - 88) * 10}
-                      550,150
-                      50,150
-                    `}
-                    fill="url(#attendanceAreaGrad)"
-                  />
-
-                  {/* Polyline */}
-                  <polyline
-                    points={`
-                      50,${150 - (attendanceTrendData[0].rate - 88) * 10}
-                      175,${150 - (attendanceTrendData[1].rate - 88) * 10}
-                      300,${150 - (attendanceTrendData[2].rate - 88) * 10}
-                      425,${150 - (attendanceTrendData[3].rate - 88) * 10}
-                      550,${150 - (attendanceTrendData[4].rate - 88) * 10}
-                    `}
-                    fill="none"
-                    stroke="url(#attendanceLineGrad)"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-
-                  {/* Data Points */}
-                  {attendanceTrendData.map((d, idx) => {
-                    const cx = 50 + idx * 125;
-                    const cy = 150 - (d.rate - 88) * 10;
-                    const isHovered = hoveredTrendDay === idx;
-
-                    return (
-                      <g
-                        key={d.day}
-                        className="cursor-pointer"
-                        onMouseEnter={() => setHoveredTrendDay(idx)}
-                        onMouseLeave={() => setHoveredTrendDay(null)}
-                      >
-                        <circle
-                          cx={cx}
-                          cy={cy}
-                          r={isHovered ? 7 : 5}
-                          fill="#0f172a"
-                          stroke={isHovered ? '#22d3ee' : '#10b981'}
-                          strokeWidth="3"
-                          className="transition-all"
-                        />
-                        <text
-                          x={cx}
-                          y="168"
-                          fill="#94a3b8"
-                          fontSize="10"
-                          fontWeight="bold"
-                          textAnchor="middle"
-                        >
-                          {d.day} ({d.date})
-                        </text>
-                        {/* Point Label */}
-                        <text
-                          x={cx}
-                          y={cy - 10}
-                          fill={isHovered ? '#22d3ee' : '#ffffff'}
-                          fontSize="10"
-                          fontWeight="bold"
-                          fontFamily="monospace"
-                          textAnchor="middle"
-                        >
-                          {d.rate}%
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r={isHovered ? 7 : 5}
+                            fill="#0f172a"
+                            stroke={isHovered ? '#22d3ee' : '#10b981'}
+                            strokeWidth="3"
+                            className="transition-all"
+                          />
+                          <text
+                            x={cx}
+                            y="178"
+                            fill="#94a3b8"
+                            fontSize="10"
+                            fontWeight="bold"
+                            textAnchor="middle"
+                          >
+                            {d.day} ({d.date})
+                          </text>
+                          {/* Point Label */}
+                          <text
+                            x={cx}
+                            y={cy - 10}
+                            fill={isHovered ? '#22d3ee' : '#ffffff'}
+                            fontSize="10"
+                            fontWeight="bold"
+                            fontFamily="monospace"
+                            textAnchor="middle"
+                          >
+                            {d.rate}%
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
 
                 {/* Day Summary Cards below chart */}
                 <div className="grid grid-cols-5 gap-2 mt-3 pt-3 border-t border-slate-800 text-[11px]">
@@ -1834,8 +1836,8 @@ export default function OverviewMetricsView({
       {/* 5. INTERACTIVE MODAL: LEARNER DEMOGRAPHICS CATEGORY VIEWER    */}
       {/* ------------------------------------------------------------- */}
       {activeCategoryModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+          <div className="w-full max-w-4xl bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
               <div className="flex items-center space-x-3">

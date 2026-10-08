@@ -37,7 +37,7 @@ export default function SchoolInfoModal({
   const fullSubdomainUrl = `http://localhost:3000/schools/${school.slug}`;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-fade-in font-sans">
+    <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in font-sans">
       <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl relative text-slate-100 my-8">
         {/* Close Button */}
         <button

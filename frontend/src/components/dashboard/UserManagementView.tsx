@@ -1299,7 +1299,7 @@ export default function UserManagementView({
       {/* CREATE / EDIT USER MODAL (WITH RFID TAG ASSIGNMENT)          */}
       {/* ============================================================= */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl p-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <h3 className="text-lg font-black text-white">
@@ -1577,7 +1577,7 @@ export default function UserManagementView({
       {/* ASSIGN CLASSES MODAL                                          */}
       {/* ============================================================= */}
       {showAssignModal && selectedUserForAssign && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-6">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
@@ -1680,7 +1680,7 @@ export default function UserManagementView({
       {/* ============================================================= */}
       {showDtrModal && (
         <div
-          className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-transparent print:static print:inset-auto"
+          className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-transparent print:static print:inset-auto animate-fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowDtrModal(false);
           }}

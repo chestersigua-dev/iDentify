@@ -1113,7 +1113,7 @@ export function StudentBeefDatabaseView({ students, onRefresh, canManage, initia
 
       {/* DepEd BEEF Creation / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">
@@ -1496,7 +1496,7 @@ export function StudentBeefDatabaseView({ students, onRefresh, canManage, initia
 
       {/* Bulk CSV / Excel Import Modal */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
               <div className="flex items-center gap-3">
@@ -1581,7 +1581,7 @@ export function StudentBeefDatabaseView({ students, onRefresh, canManage, initia
         const rfidVal = (selectedStudent.rfid_tag || selectedStudent.active_rfid_uid || '').replace(/\D/g, '').slice(0, 10);
 
         return (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
               {/* Modal Top Header */}
               <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">

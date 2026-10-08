@@ -150,29 +150,49 @@ body.light-theme {
   color: #0F172A !important;
 }
 
-/* Comprehensive background remapping using attribute wildcards so NO dark backgrounds leak */
-.light-theme [class*="bg-slate-950"] {
+/* Comprehensive background remapping using attribute wildcards so NO dark backgrounds leak (excluding modal backdrops) */
+.light-theme [class*="bg-slate-950"]:not(.glass-modal-backdrop):not([data-modal-backdrop]):not([class*="fixed inset-0"]) {
   background-color: var(--bg-canvas) !important;
 }
 
-.light-theme [class*="bg-slate-900"] {
+.light-theme [class*="bg-slate-900"]:not(.glass-modal-backdrop):not([data-modal-backdrop]):not([class*="fixed inset-0"]) {
   background-color: var(--bg-surface) !important;
   box-shadow: var(--card-shadow);
 }
 
-.light-theme [class*="bg-slate-850"],
-.light-theme [class*="bg-slate-800"] {
+.light-theme [class*="bg-slate-850"]:not(.glass-modal-backdrop):not([data-modal-backdrop]):not([class*="fixed inset-0"]),
+.light-theme [class*="bg-slate-800"]:not(.glass-modal-backdrop):not([data-modal-backdrop]):not([class*="fixed inset-0"]) {
   background-color: var(--bg-surface-elevated) !important;
 }
 
+/* ========================================================
+   GLASSLIKE SEMI-TRANSPARENT FULLSCREEN MODAL OVERLAYS
+   ======================================================== */
+.glass-modal-backdrop,
+.modal-backdrop,
+[data-modal-backdrop],
+div[class*="fixed"][class*="inset-0"][class*="z-50"],
+div[class*="fixed"][class*="inset-0"][class*="backdrop-blur"],
+.fixed.inset-0.z-50 {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(14px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
+}
+
 /* Modal and Backdrop Overlays in light mode */
+.light-theme .glass-modal-backdrop,
+.light-theme .modal-backdrop,
+.light-theme [data-modal-backdrop],
+.light-theme div[class*="fixed"][class*="inset-0"][class*="z-50"],
+.light-theme div[class*="fixed"][class*="inset-0"][class*="backdrop-blur"],
 .light-theme .fixed[class*="bg-black"],
 .light-theme div[class*="fixed"][class*="bg-black"],
 .light-theme [class*="bg-black/80"],
 .light-theme [class*="bg-black/70"],
 .light-theme [class*="bg-black/60"] {
-  background-color: rgba(15, 23, 42, 0.45) !important;
-  backdrop-filter: blur(4px) !important;
+  background-color: rgba(15, 23, 42, 0.42) !important;
+  backdrop-filter: blur(14px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
 }
 
 /* Borders */
@@ -632,25 +652,37 @@ body.light-theme {
 
 /* Dark theme element remapping for facebook-dark and emerald-dark */
 .theme-facebook-dark body,
-.theme-facebook-dark [class*="bg-slate-950"] {
+.theme-facebook-dark [class*="bg-slate-950"]:not(.glass-modal-backdrop):not([data-modal-backdrop]):not([class*="fixed inset-0"]) {
   background-color: #18191A !important;
 }
-.theme-facebook-dark [class*="bg-slate-900"] {
+.theme-facebook-dark [class*="bg-slate-900"]:not(.glass-modal-backdrop):not([data-modal-backdrop]):not([class*="fixed inset-0"]) {
   background-color: #242526 !important;
 }
 .theme-facebook-dark [class*="border-slate-800"] {
   border-color: #3A3B3C !important;
 }
+.theme-facebook-dark .glass-modal-backdrop,
+.theme-facebook-dark div[class*="fixed"][class*="inset-0"][class*="z-50"] {
+  background-color: rgba(10, 12, 16, 0.65) !important;
+  backdrop-filter: blur(14px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
+}
 
 .theme-emerald-dark body,
-.theme-emerald-dark [class*="bg-slate-950"] {
+.theme-emerald-dark [class*="bg-slate-950"]:not(.glass-modal-backdrop):not([data-modal-backdrop]):not([class*="fixed inset-0"]) {
   background-color: #061412 !important;
 }
-.theme-emerald-dark [class*="bg-slate-900"] {
+.theme-emerald-dark [class*="bg-slate-900"]:not(.glass-modal-backdrop):not([data-modal-backdrop]):not([class*="fixed inset-0"]) {
   background-color: #0B221E !important;
 }
 .theme-emerald-dark [class*="border-slate-800"] {
   border-color: #133E37 !important;
+}
+.theme-emerald-dark .glass-modal-backdrop,
+.theme-emerald-dark div[class*="fixed"][class*="inset-0"][class*="z-50"] {
+  background-color: rgba(4, 18, 15, 0.65) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
 }
 
 /* ========================================================

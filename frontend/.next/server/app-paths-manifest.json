@@ -1,11 +1,11 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/page": "app/page.js",
-  "/deped-forms/page": "app/deped-forms/page.js",
   "/api/sms/test/route": "app/api/sms/test/route.js",
-  "/kiosk/page": "app/kiosk/page.js",
-  "/schools/[slug]/kiosk/page": "app/schools/[slug]/kiosk/page.js",
   "/login/page": "app/login/page.js",
-  "/schools/[slug]/page": "app/schools/[slug]/page.js"
+  "/deped-forms/page": "app/deped-forms/page.js",
+  "/kiosk/page": "app/kiosk/page.js",
+  "/schools/[slug]/page": "app/schools/[slug]/page.js",
+  "/schools/[slug]/kiosk/page": "app/schools/[slug]/kiosk/page.js",
+  "/page": "app/page.js"
 }

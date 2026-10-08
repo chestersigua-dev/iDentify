@@ -504,7 +504,7 @@ export default function BrandedShell({ children, activeNav, onNavChange }: Brand
       {mobileMenuOpen && (
         <div
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 z-40 glass-modal-backdrop bg-slate-950/50 backdrop-blur-md md:hidden animate-fade-in"
         />
       )}
 
