@@ -5,6 +5,84 @@
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
+export type SchoolClassification = 'ELEMENTARY' | 'HIGH_SCHOOL' | 'INTEGRATED' | 'CUSTOM';
+
+export const ALL_DEPED_GRADE_LEVELS = [
+  'Kindergarten',
+  'Grade 1',
+  'Grade 2',
+  'Grade 3',
+  'Grade 4',
+  'Grade 5',
+  'Grade 6',
+  'Grade 7',
+  'Grade 8',
+  'Grade 9',
+  'Grade 10',
+  'Grade 11',
+  'Grade 12',
+] as const;
+
+export const ELEMENTARY_GRADE_LEVELS: string[] = [
+  'Kindergarten',
+  'Grade 1',
+  'Grade 2',
+  'Grade 3',
+  'Grade 4',
+  'Grade 5',
+  'Grade 6',
+];
+
+export const HIGH_SCHOOL_GRADE_LEVELS: string[] = [
+  'Grade 7',
+  'Grade 8',
+  'Grade 9',
+  'Grade 10',
+  'Grade 11',
+  'Grade 12',
+];
+
+export const JUNIOR_HIGH_GRADE_LEVELS: string[] = [
+  'Grade 7',
+  'Grade 8',
+  'Grade 9',
+  'Grade 10',
+];
+
+export const SENIOR_HIGH_GRADE_LEVELS: string[] = [
+  'Grade 11',
+  'Grade 12',
+];
+
+export const INTEGRATED_GRADE_LEVELS: string[] = [
+  'Kindergarten',
+  'Grade 1',
+  'Grade 2',
+  'Grade 3',
+  'Grade 4',
+  'Grade 5',
+  'Grade 6',
+  'Grade 7',
+  'Grade 8',
+  'Grade 9',
+  'Grade 10',
+  'Grade 11',
+  'Grade 12',
+];
+
+export function getSchoolEnabledGrades(school?: School | null): string[] {
+  if (school?.enabled_grade_levels && school.enabled_grade_levels.length > 0) {
+    return school.enabled_grade_levels;
+  }
+  if (school?.school_type === 'HIGH_SCHOOL') {
+    return HIGH_SCHOOL_GRADE_LEVELS;
+  }
+  if (school?.school_type === 'INTEGRATED') {
+    return INTEGRATED_GRADE_LEVELS;
+  }
+  return ELEMENTARY_GRADE_LEVELS;
+}
+
 export interface School {
   id: string;
   deped_school_id: string;
@@ -25,6 +103,8 @@ export interface School {
   accent_color: string;
   school_head_name?: string;
   school_head_title?: string;
+  school_type?: SchoolClassification;
+  enabled_grade_levels?: string[];
 }
 
 export const POSITIONS_LIST = [
@@ -73,6 +153,8 @@ export interface RbacMap {
   settings?: ModulePermissions;
   audit?: ModulePermissions;
   metrics?: ModulePermissions;
+  enrollment?: ModulePermissions;
+  promotion?: ModulePermissions;
 }
 
 export interface AssignedClass {
@@ -299,9 +381,78 @@ export interface Student {
   rfid_tag?: string;
   photo_url?: string;
   enrollment_status?: string;
+  status?: string;
   academic_standing?: string;
   general_average?: number;
+  grade_history?: StudentGradeHistory[];
   deped_beef_details?: any;
+}
+
+export interface StudentGradeHistory {
+  school_year: string;
+  grade_level: number | string;
+  section_name?: string;
+  general_average?: number;
+  status: 'PROMOTED' | 'RETAINED' | 'TRANSFERRED_OUT' | 'GRADUATED' | 'ENROLLED' | 'ACCELERATED';
+  promoted_at: string;
+  remarks?: string;
+}
+
+export interface EnrollmentApplication {
+  id: string;
+  tracking_number: string;
+  school_id: string;
+  school_name?: string;
+  school_year: string;
+  grade_level: number | string;
+  tier?: 'ELEMENTARY' | 'JUNIOR_HIGH' | 'SENIOR_HIGH';
+  track?: string;
+  strand?: string;
+  learner_type: 'NEW' | 'RETURNING' | 'TRANSFEREE';
+  has_lrn: boolean;
+  lrn?: string;
+  psa_birth_cert_no?: string;
+  last_name: string;
+  first_name: string;
+  middle_name?: string;
+  extension_name?: string;
+  birthdate: string;
+  age: number;
+  sex: 'Male' | 'Female';
+  mother_tongue: string;
+  ip_community?: string;
+  is_4ps_beneficiary: boolean;
+  household_4ps_id?: string;
+  has_disability?: boolean;
+  disability_details?: string;
+  current_house_no?: string;
+  current_street?: string;
+  current_barangay: string;
+  current_municipality_city: string;
+  current_province: string;
+  current_region: string;
+  last_school_attended?: string;
+  last_school_id?: string;
+  last_grade_level_completed?: string;
+  last_school_year_completed?: string;
+  father_name?: string;
+  father_contact?: string;
+  mother_name?: string;
+  mother_contact?: string;
+  guardian_name?: string;
+  guardian_relationship?: string;
+  guardian_contact?: string;
+  primary_sms_phone: string;
+  emergency_contact: string;
+  preferred_modality?: 'Face-to-Face' | 'Blended' | 'Modular';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  assigned_section_id?: string;
+  assigned_section_name?: string;
+  assigned_by_user_id?: string;
+  assigned_by_name?: string;
+  submitted_at: string;
+  processed_at?: string;
+  remarks?: string;
 }
 
 export interface AuditLog {
@@ -361,6 +512,8 @@ export const DEFAULT_SCHOOL: School = {
   accent_color: '#0ea5e9',
   school_head_name: 'Rico Idos',
   school_head_title: 'Principal I',
+  school_type: 'ELEMENTARY',
+  enabled_grade_levels: ELEMENTARY_GRADE_LEVELS,
 };
 
 // Default subjects per grade level
@@ -386,32 +539,158 @@ export const DEFAULT_GRADE_SUBJECTS: GradeSubject[] = [
 ];
 
 export const DEFAULT_SECTIONS: AcademicSection[] = [
+  // Elementary
+  {
+    id: 'sec-elem-k1',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    name: 'Kinder - Mabait',
+    grade_level: 'Kindergarten',
+    tier: 'ELEMENTARY',
+    adviser_name: 'Corazon Aquino-Mendoza, LPT',
+    school_year: '2025-2026',
+    student_count: 25,
+    max_capacity: 30,
+  },
+  {
+    id: 'sec-elem-g1',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    name: 'Grade 1 - Mabini',
+    grade_level: 'Grade 1',
+    tier: 'ELEMENTARY',
+    adviser_name: 'Maria Fe Santos, LPT',
+    school_year: '2025-2026',
+    student_count: 32,
+    max_capacity: 40,
+  },
+  {
+    id: 'sec-elem-g1b',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    name: 'Grade 1 - Rizal',
+    grade_level: 'Grade 1',
+    tier: 'ELEMENTARY',
+    adviser_name: 'Teresita Dizon, LPT',
+    school_year: '2025-2026',
+    student_count: 30,
+    max_capacity: 40,
+  },
+  {
+    id: 'sec-elem-g2',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    name: 'Grade 2 - Bonifacio',
+    grade_level: 'Grade 2',
+    tier: 'ELEMENTARY',
+    adviser_name: 'Danilo Ramos, LPT',
+    school_year: '2025-2026',
+    student_count: 34,
+    max_capacity: 40,
+  },
+  {
+    id: 'sec-elem-g3',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    name: 'Grade 3 - Del Pilar',
+    grade_level: 'Grade 3',
+    tier: 'ELEMENTARY',
+    adviser_name: 'Elena Navarro-Santos, LPT',
+    school_year: '2025-2026',
+    student_count: 35,
+    max_capacity: 40,
+  },
+  {
+    id: 'sec-elem-g4',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    name: 'Grade 4 - Aguinaldo',
+    grade_level: 'Grade 4',
+    tier: 'ELEMENTARY',
+    adviser_name: 'Lourdes Bautista, LPT',
+    school_year: '2025-2026',
+    student_count: 36,
+    max_capacity: 40,
+  },
+  {
+    id: 'sec-elem-g5',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    name: 'Grade 5 - Magsaysay',
+    grade_level: 'Grade 5',
+    tier: 'ELEMENTARY',
+    adviser_name: 'Maricel Castillo, LPT',
+    school_year: '2025-2026',
+    student_count: 38,
+    max_capacity: 40,
+  },
+  {
+    id: 'sec-elem-g6',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    name: 'Grade 6 - Quezon',
+    grade_level: 'Grade 6',
+    tier: 'ELEMENTARY',
+    adviser_name: 'Dr. Rico Idos, Principal',
+    school_year: '2025-2026',
+    student_count: 40,
+    max_capacity: 45,
+  },
+  // Junior & Senior High
+  {
+    id: '33333333-3333-3333-3333-000000000007',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    name: 'Grade 7 - Diamond',
+    grade_level: 'Grade 7',
+    tier: 'JUNIOR_HIGH',
+    adviser_user_id: '11111111-1111-1111-1111-000000000004',
+    adviser_name: 'Maria Fe Santos, LPT',
+    school_year: '2025-2026',
+    student_count: 40,
+    max_capacity: 45,
+  },
+  {
+    id: '33333333-3333-3333-3333-000000000008',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    name: 'Grade 8 - Ruby',
+    grade_level: 'Grade 8',
+    tier: 'JUNIOR_HIGH',
+    adviser_name: 'Danilo Ramos, LPT',
+    school_year: '2025-2026',
+    student_count: 39,
+    max_capacity: 45,
+  },
+  {
+    id: '33333333-3333-3333-3333-000000000009',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    name: 'Grade 9 - Pearl',
+    grade_level: 'Grade 9',
+    tier: 'JUNIOR_HIGH',
+    adviser_name: 'Elena Navarro-Santos, LPT',
+    school_year: '2025-2026',
+    student_count: 38,
+    max_capacity: 45,
+  },
   {
     id: '33333333-3333-3333-3333-000000000001',
     school_id: '11111111-1111-1111-1111-111111111111',
-    name: 'Bonifacio',
+    name: 'Grade 10 - Bonifacio',
     grade_level: 'Grade 10',
     tier: 'JUNIOR_HIGH',
     adviser_user_id: '11111111-1111-1111-1111-000000000004',
     adviser_name: 'Maria Fe Santos, LPT',
     school_year: '2025-2026',
     student_count: 42,
+    max_capacity: 45,
   },
   {
     id: '33333333-3333-3333-3333-000000000002',
     school_id: '11111111-1111-1111-1111-111111111111',
-    name: 'Rizal',
+    name: 'Grade 10 - Rizal',
     grade_level: 'Grade 10',
     tier: 'JUNIOR_HIGH',
     adviser_user_id: '11111111-1111-1111-1111-000000000004',
     adviser_name: 'Maria Fe Santos, LPT',
     school_year: '2025-2026',
     student_count: 40,
+    max_capacity: 45,
   },
   {
     id: '33333333-3333-3333-3333-000000000003',
     school_id: '11111111-1111-1111-1111-111111111111',
-    name: 'STEM - Archimedes',
+    name: 'Grade 11 - STEM Archimedes',
     grade_level: 'Grade 11',
     tier: 'SENIOR_HIGH',
     shs_track: 'Academic',
@@ -420,17 +699,236 @@ export const DEFAULT_SECTIONS: AcademicSection[] = [
     adviser_name: 'Danilo Ramos, LPT',
     school_year: '2025-2026',
     student_count: 38,
+    max_capacity: 40,
   },
   {
     id: '33333333-3333-3333-3333-000000000004',
     school_id: '11111111-1111-1111-1111-111111111111',
-    name: 'HUMSS - Recto',
+    name: 'Grade 12 - HUMSS Recto',
     grade_level: 'Grade 12',
     tier: 'SENIOR_HIGH',
     shs_track: 'Academic',
     shs_strand: 'HUMSS',
     school_year: '2025-2026',
     student_count: 35,
+    max_capacity: 40,
+  },
+];
+
+export const INITIAL_ENROLLMENTS: EnrollmentApplication[] = [
+  {
+    id: 'enr-app-001',
+    tracking_number: 'ENR-2026-08142',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    school_name: 'Sawat Elementary School',
+    school_year: '2026-2027',
+    grade_level: 'Grade 1',
+    tier: 'ELEMENTARY',
+    learner_type: 'NEW',
+    has_lrn: true,
+    lrn: '109283749102',
+    psa_birth_cert_no: '1029384756-PSA-2019',
+    last_name: 'Bautista',
+    first_name: 'Mateo',
+    middle_name: 'Santos',
+    extension_name: '',
+    birthdate: '2019-08-14',
+    age: 6,
+    sex: 'Male',
+    mother_tongue: 'Tagalog',
+    ip_community: '',
+    is_4ps_beneficiary: false,
+    current_house_no: 'Lot 14 Blk 3',
+    current_street: 'Mabini Street',
+    current_barangay: 'Sawat',
+    current_municipality_city: 'Urbiztondo',
+    current_province: 'Pangasinan',
+    current_region: 'Region I - Ilocos Region',
+    last_school_attended: 'Sawat Barangay Day Care Center',
+    last_school_id: '105942',
+    last_grade_level_completed: 'Kindergarten',
+    last_school_year_completed: '2025-2026',
+    father_name: 'Eduardo Bautista',
+    father_contact: '+639178821101',
+    mother_name: 'Lourdes Santos-Bautista',
+    mother_contact: '+639178821102',
+    guardian_name: 'Lourdes Santos-Bautista',
+    guardian_relationship: 'Mother',
+    guardian_contact: '+639178821102',
+    primary_sms_phone: '+639178821102',
+    emergency_contact: 'Lourdes Santos-Bautista (09178821102)',
+    preferred_modality: 'Face-to-Face',
+    status: 'PENDING',
+    submitted_at: '2026-04-10T08:30:00Z',
+    remarks: 'Kindergarten moving-up certificate and PSA copy presented.',
+  },
+  {
+    id: 'enr-app-002',
+    tracking_number: 'ENR-2026-08143',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    school_name: 'Sawat Elementary School',
+    school_year: '2026-2027',
+    grade_level: 'Kindergarten',
+    tier: 'ELEMENTARY',
+    learner_type: 'NEW',
+    has_lrn: false,
+    psa_birth_cert_no: '1029384756-PSA-2020',
+    last_name: 'Dizon',
+    first_name: 'Althea Mae',
+    middle_name: 'Gomez',
+    extension_name: '',
+    birthdate: '2020-10-05',
+    age: 5,
+    sex: 'Female',
+    mother_tongue: 'Ilokano',
+    ip_community: '',
+    is_4ps_beneficiary: true,
+    household_4ps_id: '4PS-R01-PANG-77401',
+    current_house_no: 'Zone 2',
+    current_street: 'Rizal Extension',
+    current_barangay: 'Sawat',
+    current_municipality_city: 'Urbiztondo',
+    current_province: 'Pangasinan',
+    current_region: 'Region I - Ilocos Region',
+    father_name: 'Ramon Dizon',
+    father_contact: '+639185521990',
+    mother_name: 'Jennifer Gomez-Dizon',
+    mother_contact: '+639185521991',
+    primary_sms_phone: '+639185521991',
+    emergency_contact: 'Jennifer Gomez-Dizon (09185521991)',
+    preferred_modality: 'Face-to-Face',
+    status: 'PENDING',
+    submitted_at: '2026-04-11T09:15:00Z',
+    remarks: '4Ps household verified. Complete birth certificate attached.',
+  },
+  {
+    id: 'enr-app-003',
+    tracking_number: 'ENR-2026-08144',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    school_name: 'Sawat Elementary School',
+    school_year: '2026-2027',
+    grade_level: 'Grade 2',
+    tier: 'ELEMENTARY',
+    learner_type: 'TRANSFEREE',
+    has_lrn: true,
+    lrn: '109283748291',
+    psa_birth_cert_no: '1029384756-PSA-2018',
+    last_name: 'Ramos',
+    first_name: 'Princess Joy',
+    middle_name: 'Castillo',
+    extension_name: '',
+    birthdate: '2018-05-22',
+    age: 7,
+    sex: 'Female',
+    mother_tongue: 'Pangasinan',
+    ip_community: '',
+    is_4ps_beneficiary: false,
+    current_house_no: 'Purok 4',
+    current_street: 'San Jose Road',
+    current_barangay: 'Sawat',
+    current_municipality_city: 'Urbiztondo',
+    current_province: 'Pangasinan',
+    current_region: 'Region I - Ilocos Region',
+    last_school_attended: 'San Carlos North Central Elementary',
+    last_school_id: '105930',
+    last_grade_level_completed: 'Grade 1',
+    last_school_year_completed: '2025-2026',
+    father_name: 'Danilo Ramos Jr.',
+    father_contact: '+639209938811',
+    mother_name: 'Maricel Castillo',
+    mother_contact: '+639209938812',
+    primary_sms_phone: '+639209938812',
+    emergency_contact: 'Danilo Ramos Jr. (09209938811)',
+    preferred_modality: 'Face-to-Face',
+    status: 'PENDING',
+    submitted_at: '2026-04-12T14:20:00Z',
+    remarks: 'Transferee from San Carlos City with Form 137 / SF10 on-hand.',
+  },
+  {
+    id: 'enr-app-004',
+    tracking_number: 'ENR-2026-08145',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    school_name: 'Mabini National High School',
+    school_year: '2026-2027',
+    grade_level: 'Grade 7',
+    tier: 'JUNIOR_HIGH',
+    learner_type: 'NEW',
+    has_lrn: true,
+    lrn: '109283747712',
+    psa_birth_cert_no: '1029384756-PSA-2013',
+    last_name: 'Santos',
+    first_name: 'Gabriel',
+    middle_name: 'Navarro',
+    extension_name: 'Jr.',
+    birthdate: '2013-11-18',
+    age: 12,
+    sex: 'Male',
+    mother_tongue: 'Tagalog',
+    ip_community: '',
+    is_4ps_beneficiary: false,
+    current_house_no: 'Block 5 Lot 12',
+    current_street: 'Del Pilar Boulevard',
+    current_barangay: 'Mabini',
+    current_municipality_city: 'Urbiztondo',
+    current_province: 'Pangasinan',
+    current_region: 'Region I - Ilocos Region',
+    last_school_attended: 'Sawat Elementary School',
+    last_school_id: '105942',
+    last_grade_level_completed: 'Grade 6',
+    last_school_year_completed: '2025-2026',
+    father_name: 'Gabriel Santos Sr.',
+    father_contact: '+639171124455',
+    mother_name: 'Elena Navarro-Santos',
+    mother_contact: '+639171124456',
+    primary_sms_phone: '+639171124455',
+    emergency_contact: 'Gabriel Santos Sr. (09171124455)',
+    preferred_modality: 'Face-to-Face',
+    status: 'PENDING',
+    submitted_at: '2026-04-13T10:00:00Z',
+    remarks: 'Grade 6 elementary graduate entering JHS.',
+  },
+  {
+    id: 'enr-app-005',
+    tracking_number: 'ENR-2026-08146',
+    school_id: '11111111-1111-1111-1111-111111111111',
+    school_name: 'Sawat Elementary School',
+    school_year: '2026-2027',
+    grade_level: 'Grade 1',
+    tier: 'ELEMENTARY',
+    learner_type: 'NEW',
+    has_lrn: true,
+    lrn: '109283749334',
+    psa_birth_cert_no: '1029384756-PSA-2019',
+    last_name: 'Mendoza',
+    first_name: 'Christian Dave',
+    middle_name: 'Aquino',
+    extension_name: '',
+    birthdate: '2019-12-04',
+    age: 6,
+    sex: 'Male',
+    mother_tongue: 'Tagalog',
+    ip_community: '',
+    is_4ps_beneficiary: false,
+    current_house_no: '142',
+    current_street: 'Provincial Road',
+    current_barangay: 'Sawat',
+    current_municipality_city: 'Urbiztondo',
+    current_province: 'Pangasinan',
+    current_region: 'Region I - Ilocos Region',
+    last_school_attended: 'Urbiztondo Learning Center',
+    last_school_id: '105940',
+    last_grade_level_completed: 'Kindergarten',
+    last_school_year_completed: '2025-2026',
+    father_name: 'Dave Mendoza',
+    father_contact: '+639194451122',
+    mother_name: 'Corazon Aquino-Mendoza',
+    mother_contact: '+639194451123',
+    primary_sms_phone: '+639194451122',
+    emergency_contact: 'Dave Mendoza (09194451122)',
+    preferred_modality: 'Face-to-Face',
+    status: 'PENDING',
+    submitted_at: '2026-04-14T11:45:00Z',
+    remarks: 'Ready for Grade 1 section assignment.',
   },
 ];
 
@@ -918,6 +1416,19 @@ if (typeof window !== 'undefined') {
 }
 let clientSectionsStore = [...DEFAULT_SECTIONS];
 let clientSubjectsStore = [...DEFAULT_GRADE_SUBJECTS];
+let clientEnrollmentsStore = [...INITIAL_ENROLLMENTS];
+
+if (typeof window !== 'undefined') {
+  try {
+    const savedEnr = localStorage.getItem('identify_enrollments_store');
+    if (savedEnr) {
+      const parsed = JSON.parse(savedEnr);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        clientEnrollmentsStore = parsed;
+      }
+    }
+  } catch {}
+}
 
 export type StudentHistoryEventType =
   | 'CLOCK_IN'
@@ -3089,6 +3600,8 @@ export const apiClient = {
     kiosk_show_sms_status: boolean;
     sms_provider: string;
     parent_sms_enabled: boolean;
+    school_type: string;
+    enabled_grade_levels: string[];
   } {
     const baseDefaults = {
       school_name: 'Sawat Elementary School',
@@ -3110,6 +3623,8 @@ export const apiClient = {
       kiosk_show_sms_status: true,
       sms_provider: 'EASYSMS',
       parent_sms_enabled: true,
+      school_type: 'ELEMENTARY',
+      enabled_grade_levels: ELEMENTARY_GRADE_LEVELS,
     };
 
     if (typeof window !== 'undefined') {
@@ -3120,6 +3635,10 @@ export const apiClient = {
           return {
             ...baseDefaults,
             ...parsed,
+            school_type: parsed.school_type || 'ELEMENTARY',
+            enabled_grade_levels: Array.isArray(parsed.enabled_grade_levels) && parsed.enabled_grade_levels.length > 0
+              ? parsed.enabled_grade_levels
+              : ELEMENTARY_GRADE_LEVELS,
             kiosk_display_duration_seconds: Number(parsed.kiosk_display_duration_seconds) || 2,
             kiosk_show_sms_status: parsed.kiosk_show_sms_status !== false,
           };
@@ -3136,6 +3655,254 @@ export const apiClient = {
         window.dispatchEvent(new Event('storage'));
       } catch {}
     }
+  },
+
+  // ---------------------------------------------------------------------------
+  // ENROLLMENT & PROMOTION MODULES
+  // ---------------------------------------------------------------------------
+  async getEnrollments(schoolId?: string, status?: string): Promise<EnrollmentApplication[]> {
+    let list = clientEnrollmentsStore.filter((e) => !schoolId || e.school_id === schoolId);
+    if (status && status !== 'ALL') {
+      list = list.filter((e) => e.status === status);
+    }
+    return [...list].sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime());
+  },
+
+  async submitEnrollment(payload: Partial<EnrollmentApplication>): Promise<EnrollmentApplication> {
+    const tracking_number = `ENR-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+    const newApp: EnrollmentApplication = {
+      id: 'enr-' + Date.now(),
+      tracking_number,
+      school_id: payload.school_id || DEFAULT_SCHOOL.id,
+      school_name: payload.school_name || DEFAULT_SCHOOL.name,
+      school_year: payload.school_year || '2026-2027',
+      grade_level: payload.grade_level || 'Grade 1',
+      tier: payload.tier || 'ELEMENTARY',
+      track: payload.track || '',
+      strand: payload.strand || '',
+      learner_type: payload.learner_type || 'NEW',
+      has_lrn: !!payload.has_lrn,
+      lrn: payload.lrn || (payload.has_lrn ? `109283${Math.floor(100000 + Math.random() * 900000)}` : undefined),
+      psa_birth_cert_no: payload.psa_birth_cert_no || `${Math.floor(1000000000 + Math.random() * 9000000000)}-PSA`,
+      last_name: (payload.last_name || '').trim(),
+      first_name: (payload.first_name || '').trim(),
+      middle_name: (payload.middle_name || '').trim(),
+      extension_name: payload.extension_name || '',
+      birthdate: payload.birthdate || '2019-01-01',
+      age: payload.age || 6,
+      sex: payload.sex || 'Male',
+      mother_tongue: payload.mother_tongue || 'Tagalog',
+      ip_community: payload.ip_community || '',
+      is_4ps_beneficiary: !!payload.is_4ps_beneficiary,
+      household_4ps_id: payload.household_4ps_id || '',
+      has_disability: !!payload.has_disability,
+      disability_details: payload.disability_details || '',
+      current_house_no: payload.current_house_no || '',
+      current_street: payload.current_street || '',
+      current_barangay: payload.current_barangay || 'Sawat',
+      current_municipality_city: payload.current_municipality_city || 'Urbiztondo',
+      current_province: payload.current_province || 'Pangasinan',
+      current_region: payload.current_region || 'Region I - Ilocos Region',
+      last_school_attended: payload.last_school_attended || '',
+      last_school_id: payload.last_school_id || '',
+      last_grade_level_completed: payload.last_grade_level_completed || '',
+      last_school_year_completed: payload.last_school_year_completed || '',
+      father_name: payload.father_name || '',
+      father_contact: payload.father_contact || '',
+      mother_name: payload.mother_name || '',
+      mother_contact: payload.mother_contact || '',
+      guardian_name: payload.guardian_name || '',
+      guardian_relationship: payload.guardian_relationship || '',
+      guardian_contact: payload.guardian_contact || '',
+      primary_sms_phone: payload.primary_sms_phone || '+639170000000',
+      emergency_contact: payload.emergency_contact || payload.primary_sms_phone || '',
+      preferred_modality: payload.preferred_modality || 'Face-to-Face',
+      status: 'PENDING',
+      submitted_at: new Date().toISOString(),
+      remarks: payload.remarks || 'Submitted online via DepEd BEEF Portal (/enroll).',
+    };
+
+    clientEnrollmentsStore.unshift(newApp);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('identify_enrollments_store', JSON.stringify(clientEnrollmentsStore));
+      } catch {}
+    }
+    return newApp;
+  },
+
+  async approveEnrollment(params: {
+    applicationId: string;
+    sectionId: string;
+    sectionName: string;
+    assignedByUserId: string;
+    assignedByName: string;
+    rfidTag?: string;
+  }): Promise<{ student: Student; application: EnrollmentApplication }> {
+    const appIndex = clientEnrollmentsStore.findIndex((a) => a.id === params.applicationId);
+    if (appIndex === -1) {
+      throw new Error('Enrollment application not found.');
+    }
+    const app = clientEnrollmentsStore[appIndex];
+    app.status = 'APPROVED';
+    app.assigned_section_id = params.sectionId;
+    app.assigned_section_name = params.sectionName;
+    app.assigned_by_user_id = params.assignedByUserId;
+    app.assigned_by_name = params.assignedByName;
+    app.processed_at = new Date().toISOString();
+    app.remarks = `Approved and assigned to ${params.sectionName} by ${params.assignedByName}.`;
+
+    // Construct student record to insert into the student database
+    const assignedRfid = (params.rfidTag || (app.tracking_number.replace(/\D/g, '') + '0000000000')).slice(0, 10);
+    const newStudent: Student = {
+      id: 'st-enr-' + Date.now(),
+      school_id: app.school_id,
+      section_id: params.sectionId,
+      section_name: params.sectionName,
+      section: params.sectionName,
+      grade_level: app.grade_level,
+      lrn: app.lrn || `${Math.floor(100000000000 + Math.random() * 900000000000)}`,
+      psa_birth_cert_no: app.psa_birth_cert_no || 'PSA-2026-VERIFIED',
+      last_name: app.last_name,
+      first_name: app.first_name,
+      middle_name: app.middle_name || '',
+      extension_name: app.extension_name || '',
+      birthdate: app.birthdate,
+      age: app.age,
+      sex: app.sex,
+      gender: app.sex,
+      mother_tongue: app.mother_tongue,
+      is_4ps_beneficiary: app.is_4ps_beneficiary,
+      household_4ps_id: app.household_4ps_id,
+      ip_community: app.ip_community,
+      has_disability: app.has_disability,
+      disability_details: app.disability_details,
+      current_house_no: app.current_house_no,
+      current_street: app.current_street,
+      current_barangay: app.current_barangay,
+      current_municipality_city: app.current_municipality_city,
+      current_province: app.current_province,
+      current_region: app.current_region,
+      father_last_name: app.father_name ? app.father_name.split(' ').slice(-1)[0] : '',
+      father_first_name: app.father_name || '',
+      mother_first_name: app.mother_name || '',
+      guardian_first_name: app.guardian_name || '',
+      guardian_relationship: app.guardian_relationship || 'Parent',
+      primary_sms_phone: app.primary_sms_phone,
+      emergency_contact: app.emergency_contact,
+      active_rfid_uid: assignedRfid,
+      rfid_tag: assignedRfid,
+      enrollment_status: 'ENROLLED',
+      academic_standing: 'REGULAR',
+      general_average: 88.5,
+      photo_url:
+        app.sex === 'Male'
+          ? 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80'
+          : 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+      grade_history: [
+        {
+          school_year: app.school_year,
+          grade_level: app.grade_level,
+          section_name: params.sectionName,
+          general_average: 88.5,
+          status: 'ENROLLED',
+          promoted_at: new Date().toISOString(),
+          remarks: `Officially approved from BEEF Application ${app.tracking_number} by ${params.assignedByName}.`,
+        },
+      ],
+      deped_beef_details: {
+        tracking_number: app.tracking_number,
+        psa_birth_cert_no: app.psa_birth_cert_no,
+        is_4ps: app.is_4ps_beneficiary,
+        household_id_4ps: app.household_4ps_id,
+        mother_tongue: app.mother_tongue,
+        last_school_attended: app.last_school_attended,
+        last_school_id: app.last_school_id,
+        last_grade_completed: app.last_grade_level_completed,
+        last_school_year_completed: app.last_school_year_completed,
+        preferred_modality: app.preferred_modality,
+      },
+    };
+
+    clientStudentsStore.unshift(newStudent);
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('identify_enrollments_store', JSON.stringify(clientEnrollmentsStore));
+        localStorage.setItem('identify_students_store', JSON.stringify(clientStudentsStore));
+      } catch {}
+    }
+
+    return { student: newStudent, application: app };
+  },
+
+  async rejectEnrollment(applicationId: string, reason?: string): Promise<EnrollmentApplication> {
+    const appIndex = clientEnrollmentsStore.findIndex((a) => a.id === applicationId);
+    if (appIndex === -1) {
+      throw new Error('Enrollment application not found.');
+    }
+    const app = clientEnrollmentsStore[appIndex];
+    app.status = 'REJECTED';
+    app.processed_at = new Date().toISOString();
+    app.remarks = reason || 'Application requires document completion.';
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('identify_enrollments_store', JSON.stringify(clientEnrollmentsStore));
+      } catch {}
+    }
+    return app;
+  },
+
+  async promoteStudents(params: {
+    studentIds: string[];
+    sourceSchoolYear: string;
+    targetSchoolYear: string;
+    targetGradeLevel: number | string;
+    targetSectionId: string;
+    targetSectionName: string;
+  }): Promise<{ promotedCount: number; students: Student[] }> {
+    const updated: Student[] = [];
+    clientStudentsStore = clientStudentsStore.map((student) => {
+      if (params.studentIds.includes(student.id)) {
+        // Record prior grade level record in history sorted by grade level
+        const priorHistory: StudentGradeHistory = {
+          school_year: params.sourceSchoolYear,
+          grade_level: student.grade_level,
+          section_name: student.section_name || student.section || 'Unassigned Section',
+          general_average: student.general_average || 88.5,
+          status: 'PROMOTED',
+          promoted_at: new Date().toISOString(),
+          remarks: `Promoted from ${student.grade_level} to ${params.targetGradeLevel} for SY ${params.targetSchoolYear}.`,
+        };
+
+        const newHistory = [...(student.grade_history || []), priorHistory].sort((a, b) => {
+          const numA = parseInt(String(a.grade_level).replace(/\D/g, '') || '0', 10);
+          const numB = parseInt(String(b.grade_level).replace(/\D/g, '') || '0', 10);
+          return numA - numB;
+        });
+
+        const promotedStudent: Student = {
+          ...student,
+          grade_level: params.targetGradeLevel,
+          section_id: params.targetSectionId,
+          section_name: params.targetSectionName,
+          section: params.targetSectionName,
+          enrollment_status: 'PROMOTED_ENROLLED',
+          grade_history: newHistory,
+        };
+        updated.push(promotedStudent);
+        return promotedStudent;
+      }
+      return student;
+    });
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('identify_students_store', JSON.stringify(clientStudentsStore));
+      } catch {}
+    }
+
+    return { promotedCount: updated.length, students: updated };
   },
 };
 
@@ -3263,6 +4030,41 @@ export const attendanceApi = {
       remarks: payload.remarks,
       date: payload.date,
     });
+  },
+};
+
+export const enrollmentApi = {
+  async getAll(schoolId?: string, status?: string): Promise<EnrollmentApplication[]> {
+    return await apiClient.getEnrollments(schoolId || DEFAULT_SCHOOL.id, status);
+  },
+  async submit(payload: Partial<EnrollmentApplication>): Promise<EnrollmentApplication> {
+    return await apiClient.submitEnrollment(payload);
+  },
+  async approveAndAssign(params: {
+    applicationId: string;
+    sectionId: string;
+    sectionName: string;
+    assignedByUserId: string;
+    assignedByName: string;
+    rfidTag?: string;
+  }): Promise<{ student: Student; application: EnrollmentApplication }> {
+    return await apiClient.approveEnrollment(params);
+  },
+  async reject(applicationId: string, reason?: string): Promise<EnrollmentApplication> {
+    return await apiClient.rejectEnrollment(applicationId, reason);
+  },
+};
+
+export const promotionApi = {
+  async promoteBatch(params: {
+    studentIds: string[];
+    sourceSchoolYear: string;
+    targetSchoolYear: string;
+    targetGradeLevel: number | string;
+    targetSectionId: string;
+    targetSectionName: string;
+  }): Promise<{ promotedCount: number; students: Student[] }> {
+    return await apiClient.promoteStudents(params);
   },
 };
 

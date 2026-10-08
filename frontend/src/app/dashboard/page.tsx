@@ -23,6 +23,8 @@ import { AcademicAssignmentsView } from '@/components/dashboard/AcademicAssignme
 import { ClassroomAttendanceView } from '@/components/dashboard/ClassroomAttendanceView';
 import { SchoolSettingsView } from '@/components/dashboard/SchoolSettingsView';
 import { AuditLedgerView } from '@/components/dashboard/AuditLedgerView';
+import EnrollmentManagementView from '@/components/dashboard/EnrollmentManagementView';
+import StudentPromotionView from '@/components/dashboard/StudentPromotionView';
 
 export default function DashboardPage() {
   const { currentRole, currentUser } = useTenant();
@@ -59,7 +61,20 @@ export default function DashboardPage() {
   useEffect(() => {
     const requested =
       typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('nav') : null;
-    const validNavs = ['overview', 'users', 'staff', 'students', 'import_csv', 'academic', 'attendance', 'settings', 'school_profile', 'audit'];
+    const validNavs = [
+      'overview',
+      'users',
+      'staff',
+      'enrollment',
+      'students',
+      'promotion',
+      'import_csv',
+      'academic',
+      'attendance',
+      'settings',
+      'school_profile',
+      'audit',
+    ];
     if (requested && validNavs.includes(requested)) {
       setActiveNav(requested);
     } else if (currentRole === 'TEACHER' || currentRole === 'MASTER_TEACHER') {
@@ -74,7 +89,7 @@ export default function DashboardPage() {
   // Restrict AO from accessing unauthorized views
   useEffect(() => {
     if (currentRole === 'ADMIN_ASSISTANT') {
-      const allowedAoNavs = ['users', 'staff', 'students', 'import_csv', 'academic'];
+      const allowedAoNavs = ['users', 'staff', 'enrollment', 'students', 'promotion', 'import_csv', 'academic'];
       if (!allowedAoNavs.includes(activeNav)) {
         setActiveNav('users');
       }
@@ -85,16 +100,20 @@ export default function DashboardPage() {
   // - Superadmin: All access
   // - Principal & Admin Assistant (AO): Can CRUD teachers/staff, assign sections/subjects, CRUD students BEEF + import CSV
   // - Master Teacher & Teacher: Same RBAC access (Classroom attendance, assigned workloads, student metrics)
+  // - All faculty have access to Enrollment module
+  // - Super Admin, Principal, AO, and Teachers have access to Promotion
   const isSuperAdmin = currentRole === 'SUPER_ADMIN';
   const isPrincipal = currentRole === 'PRINCIPAL';
   const isAdminAssistant = currentRole === 'ADMIN_ASSISTANT';
   const isTeacher = currentRole === 'TEACHER' || currentRole === 'MASTER_TEACHER';
+  const isFaculty = isSuperAdmin || isPrincipal || isAdminAssistant || isTeacher || currentRole === 'STAFF';
 
   const canManageUsers = isSuperAdmin || isPrincipal || isAdminAssistant;
   const canManageAcademic = isSuperAdmin || isPrincipal || isAdminAssistant;
   const canManageStudents = isSuperAdmin || isPrincipal || isAdminAssistant;
   const canManageSettings = isSuperAdmin || isPrincipal;
   const canViewAudit = isSuperAdmin || isPrincipal;
+  const canAccessPromotion = isSuperAdmin || isPrincipal || isAdminAssistant || isTeacher;
 
   return (
     <BrandedShell activeNav={activeNav} onNavChange={setActiveNav}>
@@ -120,11 +139,28 @@ export default function DashboardPage() {
           />
         )}
 
+        {/* Enrollment Management Module (Accessible by all faculty) */}
+        {activeNav === 'enrollment' && isFaculty && (
+          <EnrollmentManagementView
+            sections={sections}
+            onRosterRefresh={fetchData}
+          />
+        )}
+
         {activeNav === 'students' && canManageStudents && (
           <StudentBeefDatabaseView
             students={students}
             onRefresh={fetchData}
             canManage={canManageStudents}
+          />
+        )}
+
+        {/* Student Promotion Module */}
+        {activeNav === 'promotion' && canAccessPromotion && (
+          <StudentPromotionView
+            students={students}
+            sections={sections}
+            onPromotionComplete={fetchData}
           />
         )}
 

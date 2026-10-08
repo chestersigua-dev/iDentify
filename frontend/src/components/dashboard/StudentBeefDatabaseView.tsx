@@ -47,7 +47,9 @@ import {
   XCircle,
   FileText,
   RefreshCw,
-  SlidersHorizontal
+  SlidersHorizontal,
+  TrendingUp,
+  Award,
 } from 'lucide-react';
 
 interface StudentBeefDatabaseViewProps {
@@ -71,7 +73,7 @@ export function StudentBeefDatabaseView({ students, onRefresh, canManage, initia
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [tapLogs, setTapLogs] = useState<KioskTapLog[]>([]);
-  const [detailsTab, setDetailsTab] = useState<'profile' | 'history'>('profile');
+  const [detailsTab, setDetailsTab] = useState<'profile' | 'history' | 'grade_history'>('profile');
   const [historySortField, setHistorySortField] = useState<'type' | 'timestamp'>('timestamp');
   const [historySortDirection, setHistorySortDirection] = useState<'asc' | 'desc'>('desc');
   const [historyTypeFilter, setHistoryTypeFilter] = useState<string>('ALL');
@@ -1657,6 +1659,23 @@ export function StudentBeefDatabaseView({ students, onRefresh, canManage, initia
                       {studentHistory.length}
                     </span>
                   </button>
+
+                  <button
+                    onClick={() => setDetailsTab('grade_history')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition ${
+                      detailsTab === 'grade_history'
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>Grade &amp; Promotion History</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      detailsTab === 'grade_history' ? 'bg-emerald-950 text-emerald-200' : 'bg-slate-800 text-slate-300'
+                    }`}>
+                      {selectedStudent.grade_history?.length || 0}
+                    </span>
+                  </button>
                 </div>
 
                 {detailsTab === 'history' && (
@@ -2136,12 +2155,125 @@ export function StudentBeefDatabaseView({ students, onRefresh, canManage, initia
                 </div>
               )}
 
+              {/* Tab 3: Educational Grade & Promotion History */}
+              {detailsTab === 'grade_history' && (
+                <div className="p-6 space-y-5 overflow-y-auto text-sm text-slate-300 flex-1">
+                  {/* Current Active Enrolled Level Banner */}
+                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-base">
+                        {selectedStudent.grade_level === 'K' ? 'K' : `G${selectedStudent.grade_level}`}
+                      </div>
+                      <div>
+                        <div className="text-xs uppercase tracking-wider font-bold text-slate-400">Current Academic Placement</div>
+                        <div className="text-white font-bold text-sm">
+                          {selectedStudent.grade_level === 'K' ? 'Kindergarten' : `Grade ${selectedStudent.grade_level}`} — Section {selectedStudent.section_name || selectedStudent.section || 'General'}
+                        </div>
+                        <div className="text-xs text-slate-400 font-mono mt-0.5">
+                          School Year 2026-2027 • Status: <span className="text-emerald-400 font-semibold">{selectedStudent.status || 'ACTIVE'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Current Grade Level
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Prior Years Timeline sorted by Grade Level */}
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                      <Award className="w-4 h-4 text-emerald-400" />
+                      <span>Preserved Prior Grade Level History (Sorted Chronologically)</span>
+                    </h4>
+
+                    {(!selectedStudent.grade_history || selectedStudent.grade_history.length === 0) ? (
+                      <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-8 text-center text-slate-500">
+                        <TrendingUp className="w-8 h-8 mx-auto text-slate-600 mb-2" />
+                        <p className="text-sm font-semibold text-slate-400">No Prior Promotion Records On File</p>
+                        <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                          This learner is currently in their entry-level enrollment or initial placement. Prior school year records will automatically accumulate here upon annual promotion.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {[...selectedStudent.grade_history]
+                          .sort((a, b) => {
+                            const parseGrade = (g: string | number) => (String(g) === 'K' || String(g) === 'Kinder' ? 0 : parseInt(String(g), 10) || 0);
+                            return parseGrade(a.grade_level) - parseGrade(b.grade_level);
+                          })
+                          .map((hist, idx) => (
+                            <div
+                              key={idx}
+                              className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-700 transition"
+                            >
+                              <div className="flex items-start gap-3.5">
+                                <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-mono font-bold text-sm shrink-0">
+                                  {hist.grade_level === 'K' ? 'K' : `G${hist.grade_level}`}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-white text-sm">
+                                      {hist.grade_level === 'K' ? 'Kindergarten' : `Grade ${hist.grade_level}`}
+                                    </span>
+                                    <span className="text-slate-400 font-medium text-xs">
+                                      Section {hist.section_name}
+                                    </span>
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                      S.Y. {hist.school_year}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-slate-400 mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+                                    {hist.general_average && (
+                                      <span>
+                                        Gen. Average: <strong className="text-cyan-400 font-mono">{hist.general_average.toFixed(1)}</strong>
+                                      </span>
+                                    )}
+                                    {hist.promoted_at && (
+                                      <span>
+                                        Promoted On: <span className="font-mono text-slate-300">{new Date(hist.promoted_at).toLocaleDateString()}</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                  {hist.remarks && (
+                                    <p className="text-xs text-slate-500 italic mt-1.5">
+                                      &ldquo;{hist.remarks}&rdquo;
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 self-end md:self-center">
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                  hist.status === 'PROMOTED'
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                    : hist.status === 'ACCELERATED'
+                                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                }`}>
+                                  {hist.status}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Modal Footer */}
               <div className="px-6 py-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
                 <div className="text-xs text-slate-400 flex items-center gap-2">
-                  <span>Showing {detailsTab === 'history' ? filteredAndSortedHistory.length : '1'} record{filteredAndSortedHistory.length === 1 ? '' : 's'}</span>
+                  <span>
+                    Showing {detailsTab === 'history' ? filteredAndSortedHistory.length : detailsTab === 'grade_history' ? (selectedStudent.grade_history?.length || 0) : '1'} record{((detailsTab === 'history' ? filteredAndSortedHistory.length : detailsTab === 'grade_history' ? (selectedStudent.grade_history?.length || 0) : 1) === 1 ? '' : 's')}
+                  </span>
                   {detailsTab === 'history' && (
                     <span className="text-slate-600 font-mono">• Sorted by {historySortField === 'type' ? 'Event Type' : 'Date & Time'} ({historySortDirection.toUpperCase()})</span>
+                  )}
+                  {detailsTab === 'grade_history' && (
+                    <span className="text-slate-600 font-mono">• Sorted chronologically by Grade Level</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">

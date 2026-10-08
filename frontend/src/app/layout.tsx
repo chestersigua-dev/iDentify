@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/lib/theme-context';
 import { ImageFallback } from '@/components/ImageFallback';
 
 export const metadata: Metadata = {
-  title: 'iDentify | DepEd Multi-Tenant School Management & Attendance SaaS',
+  title: 'iDentify | DepEd Compatible School Management & Attendance System',
   description:
     'Philippine Department of Education (DepEd) compliant SaaS platform with RFID gate kiosks, SOC 2 audit trail, and automated SF1, SF2, SF5 form generation.',
   icons: {

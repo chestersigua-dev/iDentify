@@ -36,11 +36,22 @@ import {
   Smartphone,
   Lock,
   Upload,
-  Camera
+  Camera,
+  GraduationCap,
+  BookOpen,
+  Layers,
+  Sliders,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useTenant } from '@/lib/tenant-context';
-import { apiClient } from '@/lib/api';
+import { 
+  apiClient, 
+  ALL_DEPED_GRADE_LEVELS, 
+  ELEMENTARY_GRADE_LEVELS, 
+  HIGH_SCHOOL_GRADE_LEVELS, 
+  INTEGRATED_GRADE_LEVELS, 
+  SchoolClassification 
+} from '@/lib/api';
 import { TestSmsModal } from './TestSmsModal';
 
 interface SchoolSettingsViewProps {
@@ -67,6 +78,8 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
     school_head_name: s?.school_head_name || 'Dr. Rico Idos',
     school_head_title: s?.school_head_title || 'Principal I',
     logo_url: s?.logo_url || '/logos/sawat.png',
+    school_type: (s?.school_type as SchoolClassification) || 'ELEMENTARY',
+    enabled_grade_levels: s?.enabled_grade_levels && s.enabled_grade_levels.length > 0 ? s.enabled_grade_levels : ELEMENTARY_GRADE_LEVELS,
   });
 
   const [settings, setSettings] = useState(() => {
@@ -81,6 +94,8 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
       school_head_name: 'Dr. Rico Idos',
       school_head_title: 'Principal I',
       logo_url: '/logos/sawat.png',
+      school_type: 'ELEMENTARY' as SchoolClassification,
+      enabled_grade_levels: ELEMENTARY_GRADE_LEVELS as string[],
       easysms_api_key: 'es_live_********************************',
       semaphore_api_key: 'sem_live_********************************',
       philsms_api_token: 'philsms_live_****************************',
@@ -102,6 +117,10 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
             return {
               ...baseDefaults,
               ...parsed,
+              school_type: (parsed.school_type as SchoolClassification) || 'ELEMENTARY',
+              enabled_grade_levels: Array.isArray(parsed.enabled_grade_levels) && parsed.enabled_grade_levels.length > 0
+                ? parsed.enabled_grade_levels
+                : ELEMENTARY_GRADE_LEVELS,
               kiosk_display_duration_seconds: Number(parsed.kiosk_display_duration_seconds) || 2,
               kiosk_show_sms_status: parsed.kiosk_show_sms_status !== false,
             };
@@ -402,6 +421,76 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
     setTimeout(() => setIsLoadedNotice(false), 3500);
   };
 
+  // Grade Level Offerings Handlers
+  const handleSelectPreset = (preset: 'ELEMENTARY' | 'HIGH_SCHOOL' | 'INTEGRATED') => {
+    if (!canEditInstitutional) return;
+    if (preset === 'ELEMENTARY') {
+      setSettings((prev) => ({
+        ...prev,
+        school_type: 'ELEMENTARY',
+        enabled_grade_levels: [...ELEMENTARY_GRADE_LEVELS],
+      }));
+    } else if (preset === 'HIGH_SCHOOL') {
+      setSettings((prev) => ({
+        ...prev,
+        school_type: 'HIGH_SCHOOL',
+        enabled_grade_levels: [...HIGH_SCHOOL_GRADE_LEVELS],
+      }));
+    } else if (preset === 'INTEGRATED') {
+      setSettings((prev) => ({
+        ...prev,
+        school_type: 'INTEGRATED',
+        enabled_grade_levels: [...INTEGRATED_GRADE_LEVELS],
+      }));
+    }
+  };
+
+  const handleToggleGrade = (grade: string) => {
+    if (!canEditInstitutional) return;
+    const currentList = settings.enabled_grade_levels || [];
+    let updated: string[];
+    if (currentList.includes(grade)) {
+      if (currentList.length <= 1) {
+        alert('At least one grade level must remain active for enrollment.');
+        return;
+      }
+      updated = currentList.filter((g) => g !== grade);
+    } else {
+      updated = [...currentList, grade];
+    }
+
+    // Determine classification
+    let computedType: SchoolClassification = 'CUSTOM';
+    const isExactElem =
+      updated.length === ELEMENTARY_GRADE_LEVELS.length &&
+      ELEMENTARY_GRADE_LEVELS.every((g) => updated.includes(g));
+    const isExactHS =
+      updated.length === HIGH_SCHOOL_GRADE_LEVELS.length &&
+      HIGH_SCHOOL_GRADE_LEVELS.every((g) => updated.includes(g));
+    const isExactIntegrated =
+      updated.length === INTEGRATED_GRADE_LEVELS.length &&
+      INTEGRATED_GRADE_LEVELS.every((g) => updated.includes(g));
+
+    if (isExactElem) computedType = 'ELEMENTARY';
+    else if (isExactHS) computedType = 'HIGH_SCHOOL';
+    else if (isExactIntegrated) computedType = 'INTEGRATED';
+
+    setSettings((prev) => ({
+      ...prev,
+      school_type: computedType,
+      enabled_grade_levels: updated,
+    }));
+  };
+
+  const handleEnableAllGrades = () => {
+    if (!canEditInstitutional) return;
+    setSettings((prev) => ({
+      ...prev,
+      school_type: 'INTEGRATED',
+      enabled_grade_levels: [...INTEGRATED_GRADE_LEVELS],
+    }));
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canEditInstitutional) {
@@ -437,6 +526,8 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
             school_head_title: settings.school_head_title,
             division: settings.division,
             region: settings.region,
+            school_type: settings.school_type,
+            enabled_grade_levels: settings.enabled_grade_levels,
           },
           currentRole,
         );
@@ -459,6 +550,8 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
         school_head_title: settings.school_head_title,
         division: settings.division,
         region: settings.region,
+        school_type: settings.school_type,
+        enabled_grade_levels: settings.enabled_grade_levels,
       });
     }
 
@@ -1074,6 +1167,264 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
                 placeholder="Principal I"
                 className="w-full bg-slate-950 border border-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Enrollment Grade Level Offerings & School Scope */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-emerald-400" />
+                  Enrollment Grade Level Offerings &amp; School Scope
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm">
+                  {settings.school_type === 'ELEMENTARY' && 'Elementary Only (K-6)'}
+                  {settings.school_type === 'HIGH_SCHOOL' && 'High School Only (7-12)'}
+                  {settings.school_type === 'INTEGRATED' && 'Integrated School (K-12)'}
+                  {settings.school_type === 'CUSTOM' && 'Custom Scope'}
+                </span>
+                <span className="text-[10px] font-mono text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                  {settings.enabled_grade_levels?.length || 0} of {ALL_DEPED_GRADE_LEVELS.length} Grades Active
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Enable or disable grade levels offered for enrollment. Public enrollees on the DepEd enrollment form (<code className="text-emerald-400">/enroll</code>) will only see active grade offerings.
+              </p>
+            </div>
+
+            {canEditInstitutional && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleEnableAllGrades}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                  title="Enable all DepEd grade levels (K through 12)"
+                >
+                  <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Select All (K-12)</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Quick Selection Presets */}
+          <div className="space-y-3">
+            <label className="block text-xs font-semibold text-slate-300">
+              Quick School Classification Presets
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Preset 1: Elementary Only */}
+              <button
+                type="button"
+                disabled={!canEditInstitutional}
+                onClick={() => handleSelectPreset('ELEMENTARY')}
+                className={`p-4 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer disabled:cursor-not-allowed ${
+                  settings.school_type === 'ELEMENTARY'
+                    ? 'bg-emerald-950/40 border-emerald-500/60 ring-2 ring-emerald-500/30'
+                    : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  {settings.school_type === 'ELEMENTARY' && (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-800">
+                      <Check className="w-3 h-3" /> Selected
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white mb-0.5">Elementary School Only</div>
+                  <div className="text-xs text-slate-400">Kindergarten to Grade 6</div>
+                  <div className="mt-2 text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-900/60 inline-block">
+                    7 Grade Offerings
+                  </div>
+                </div>
+              </button>
+
+              {/* Preset 2: High School Only */}
+              <button
+                type="button"
+                disabled={!canEditInstitutional}
+                onClick={() => handleSelectPreset('HIGH_SCHOOL')}
+                className={`p-4 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer disabled:cursor-not-allowed ${
+                  settings.school_type === 'HIGH_SCHOOL'
+                    ? 'bg-blue-950/40 border-blue-500/60 ring-2 ring-blue-500/30'
+                    : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                    <GraduationCap className="w-4 h-4" />
+                  </div>
+                  {settings.school_type === 'HIGH_SCHOOL' && (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-blue-400 bg-blue-950 px-2 py-0.5 rounded-full border border-blue-800">
+                      <Check className="w-3 h-3" /> Selected
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white mb-0.5">High School Only</div>
+                  <div className="text-xs text-slate-400">Junior (7-10) &amp; Senior (11-12)</div>
+                  <div className="mt-2 text-[10px] font-mono text-blue-400 bg-blue-950/80 px-2 py-0.5 rounded border border-blue-900/60 inline-block">
+                    6 Grade Offerings
+                  </div>
+                </div>
+              </button>
+
+              {/* Preset 3: Integrated School */}
+              <button
+                type="button"
+                disabled={!canEditInstitutional}
+                onClick={() => handleSelectPreset('INTEGRATED')}
+                className={`p-4 rounded-xl border text-left transition flex flex-col justify-between cursor-pointer disabled:cursor-not-allowed ${
+                  settings.school_type === 'INTEGRATED'
+                    ? 'bg-purple-950/40 border-purple-500/60 ring-2 ring-purple-500/30'
+                    : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  {settings.school_type === 'INTEGRATED' && (
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-purple-400 bg-purple-950 px-2 py-0.5 rounded-full border border-purple-800">
+                      <Check className="w-3 h-3" /> Selected
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white mb-0.5">Integrated School</div>
+                  <div className="text-xs text-slate-400">Complete Basic Ed (K to 12)</div>
+                  <div className="mt-2 text-[10px] font-mono text-purple-400 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-900/60 inline-block">
+                    All 13 Grade Offerings
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Granular Key Stage Grade Level Toggle Matrix */}
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-300">
+                Granular Grade Level Offerings (Click to Toggle)
+              </label>
+              <span className="text-[11px] text-slate-400">
+                {canEditInstitutional ? 'Toggle specific grades offered by your institution' : 'View-only mode'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Elementary Stages */}
+              <div className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
+                    <BookOpen className="w-4 h-4" />
+                    Elementary Key Stages (K to Grade 6)
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {ELEMENTARY_GRADE_LEVELS.filter((g) => settings.enabled_grade_levels?.includes(g)).length} / 7 active
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {ELEMENTARY_GRADE_LEVELS.map((grade) => {
+                    const isEnabled = settings.enabled_grade_levels?.includes(grade);
+                    return (
+                      <button
+                        key={grade}
+                        type="button"
+                        disabled={!canEditInstitutional}
+                        onClick={() => handleToggleGrade(grade)}
+                        className={`flex items-center justify-between p-2.5 rounded-lg border text-xs font-medium transition cursor-pointer disabled:cursor-not-allowed ${
+                          isEnabled
+                            ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-200 shadow-sm'
+                            : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:border-slate-700'
+                        }`}
+                      >
+                        <span className="font-semibold">{grade}</span>
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                            isEnabled
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold'
+                              : 'bg-slate-800 text-slate-500 border border-slate-700'
+                          }`}
+                        >
+                          {isEnabled ? 'Enrolling' : 'Disabled'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* High School Stages */}
+              <div className="bg-slate-950/70 border border-slate-800/90 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-blue-400">
+                    <GraduationCap className="w-4 h-4" />
+                    High School Stages (Grades 7 to 12)
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {HIGH_SCHOOL_GRADE_LEVELS.filter((g) => settings.enabled_grade_levels?.includes(g)).length} / 6 active
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {HIGH_SCHOOL_GRADE_LEVELS.map((grade) => {
+                    const isEnabled = settings.enabled_grade_levels?.includes(grade);
+                    const isSHS = grade === 'Grade 11' || grade === 'Grade 12';
+                    return (
+                      <button
+                        key={grade}
+                        type="button"
+                        disabled={!canEditInstitutional}
+                        onClick={() => handleToggleGrade(grade)}
+                        className={`flex items-center justify-between p-2.5 rounded-lg border text-xs font-medium transition cursor-pointer disabled:cursor-not-allowed ${
+                          isEnabled
+                            ? isSHS
+                              ? 'bg-purple-950/40 border-purple-500/50 text-purple-200 shadow-sm'
+                              : 'bg-blue-950/40 border-blue-500/50 text-blue-200 shadow-sm'
+                            : 'bg-slate-900/60 border-slate-800 text-slate-500 hover:border-slate-700'
+                        }`}
+                      >
+                        <div className="flex flex-col text-left">
+                          <span className="font-semibold">{grade}</span>
+                          <span className="text-[9px] text-slate-400">
+                            {isSHS ? 'Senior High (SHS)' : 'Junior High (JHS)'}
+                          </span>
+                        </div>
+                        <span
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                            isEnabled
+                              ? isSHS
+                                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold'
+                                : 'bg-blue-500/20 text-blue-300 border border-blue-500/40 font-bold'
+                              : 'bg-slate-800 text-slate-500 border border-slate-700'
+                          }`}
+                        >
+                          {isEnabled ? 'Enrolling' : 'Disabled'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Real-time enrollment interoperability note */}
+          <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400 flex items-start gap-2.5">
+            <Sliders className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold text-slate-200">Interoperability Active: </span>
+              Selected grade levels are immediately applied to the public DepEd enrollment form at <code className="text-emerald-400">/enroll</code>.
+              Applicants will only be presented with the {settings.enabled_grade_levels?.length || 0} active grade levels enabled above.
             </div>
           </div>
         </div>

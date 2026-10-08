@@ -68,6 +68,10 @@ export function loadEffectiveSchool(base?: School): School {
             school_head_title: s.school_head_title || res.school_head_title,
             contact_phone: s.contact_number || res.contact_phone,
             contact_email: s.email || res.contact_email,
+            school_type: s.school_type || res.school_type || 'ELEMENTARY',
+            enabled_grade_levels: Array.isArray(s.enabled_grade_levels) && s.enabled_grade_levels.length > 0
+              ? s.enabled_grade_levels
+              : (res.enabled_grade_levels || ['Kindergarten', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6']),
           };
         }
       }
@@ -100,6 +104,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
           school_head_title: effective.school_head_title,
           contact_number: effective.contact_phone,
           email: effective.contact_email,
+          school_type: effective.school_type || 'ELEMENTARY',
+          enabled_grade_levels: effective.enabled_grade_levels || ['Kindergarten', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'],
         };
         localStorage.setItem('identify_school_settings', JSON.stringify(updatedSettings));
         window.dispatchEvent(new Event('storage'));

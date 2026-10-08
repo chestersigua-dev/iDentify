@@ -15,6 +15,7 @@ import {
   FileSpreadsheet,
   ShieldCheck,
   ChevronDown,
+  ChevronRight,
   LogOut,
   QrCode,
   GraduationCap,
@@ -41,8 +42,11 @@ import {
   Moon,
   Palette,
   RotateCcw,
+  FileText,
+  TrendingUp,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
+import { enrollmentApi } from '@/lib/api';
 
 interface BrandedShellProps {
   children: React.ReactNode;
@@ -74,6 +78,28 @@ export default function BrandedShell({ children, activeNav, onNavChange }: Brand
   const [roleSwitcherOpen, setRoleSwitcherOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [pendingEnrollmentCount, setPendingEnrollmentCount] = useState<number>(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPending = async () => {
+      try {
+        const apps = await enrollmentApi.getAll(school.id);
+        if (isMounted) {
+          const pending = apps.filter((a) => a.status === 'PENDING').length;
+          setPendingEnrollmentCount(pending);
+        }
+      } catch {
+        // silent
+      }
+    };
+    fetchPending();
+    const interval = setInterval(fetchPending, 8000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [school.id]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -155,6 +181,17 @@ export default function BrandedShell({ children, activeNav, onNavChange }: Brand
   const isPrincipal = currentRole === 'PRINCIPAL';
   const isAdminAssistant = currentRole === 'ADMIN_ASSISTANT';
   const isTeacherOrMaster = currentRole === 'TEACHER' || currentRole === 'MASTER_TEACHER';
+  const isFaculty = isSuperAdmin || isPrincipal || isAdminAssistant || isTeacherOrMaster || currentRole === 'STAFF';
+
+  // Students sub-menu state & active child detector
+  const [studentsMenuOpen, setStudentsMenuOpen] = useState<boolean>(true);
+  const isStudentsChildActive = ['enrollment', 'students', 'promotion', 'import_csv'].includes(activeNav || '');
+
+  useEffect(() => {
+    if (isStudentsChildActive) {
+      setStudentsMenuOpen(true);
+    }
+  }, [isStudentsChildActive]);
 
   // Helper to ensure crisp, readable text across all 6 light and dark themes
   const getNavItemClass = (isActive: boolean) =>
@@ -162,6 +199,14 @@ export default function BrandedShell({ children, activeNav, onNavChange }: Brand
       isActive
         ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-lg shadow-blue-600/30'
         : 'text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 font-semibold'
+    }`;
+
+  // Helper for indented sub-menu items
+  const getSubnavItemClass = (isActive: boolean) =>
+    `w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs transition-all ${
+      isActive
+        ? 'bg-blue-600/20 text-blue-400 dark:text-blue-300 font-bold border border-blue-500/40 shadow-sm'
+        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-medium'
     }`;
 
   return (
@@ -245,7 +290,7 @@ export default function BrandedShell({ children, activeNav, onNavChange }: Brand
               <span className="text-[9px] text-slate-400 font-mono font-normal">v1.2b</span>
             </div>
 
-            {/* 1. Dashboard & Metrics (Principal, Super Admin, Teachers) */}
+            {/* 1. Dashboard */}
             {(isSuperAdmin || isPrincipal || isTeacherOrMaster) && (
               <button
                 id="nav-dashboard"
@@ -253,93 +298,163 @@ export default function BrandedShell({ children, activeNav, onNavChange }: Brand
                 className={getNavItemClass((!activeNav || activeNav === 'overview') && pathname === '/dashboard')}
               >
                 <Layers className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-                <span>Dashboard &amp; Metrics</span>
+                <span>Dashboard</span>
               </button>
             )}
 
-            {/* 2. Faculty & Staff / DTR */}
-            {(isSuperAdmin || isPrincipal || isAdminAssistant || isTeacherOrMaster) && (
+            {/* 2. Students Main Menu with Sub Menu */}
+            <div className="space-y-1">
               <button
-                id="nav-users"
-                onClick={() => handleNavClick('users')}
-                className={getNavItemClass((activeNav === 'users' || activeNav === 'staff') && pathname === '/dashboard')}
+                id="nav-students-parent"
+                onClick={() => setStudentsMenuOpen(!studentsMenuOpen)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium transition-all ${
+                  isStudentsChildActive && pathname === '/dashboard'
+                    ? 'bg-slate-800/80 text-cyan-400 font-bold border border-cyan-500/30'
+                    : 'text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 font-semibold'
+                }`}
               >
-                <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>{isTeacherOrMaster && !isAdminAssistant && !isPrincipal ? 'Faculty & My DTR' : 'Faculty & Staff (DTR)'}</span>
+                <div className="flex items-center space-x-2.5">
+                  <GraduationCap className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
+                  <span>Students</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {pendingEnrollmentCount > 0 && !studentsMenuOpen && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      {pendingEnrollmentCount}
+                    </span>
+                  )}
+                  {studentsMenuOpen ? (
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 transition-transform duration-200" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 transition-transform duration-200" />
+                  )}
+                </div>
               </button>
-            )}
 
-            {/* 3. Student Database (DepEd BEEF) */}
-            <button
-              id="nav-students"
-              onClick={() => handleNavClick('students')}
-              className={getNavItemClass(activeNav === 'students' && pathname === '/dashboard')}
-            >
-              <GraduationCap className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-              <span>Student Database (BEEF)</span>
-            </button>
+              {/* Students Sub-Menu */}
+              {studentsMenuOpen && (
+                <div className="ml-3 pl-3 border-l-2 border-slate-800/80 space-y-1 py-0.5">
+                  {/* Sub-menu 1: Enrollment Portal */}
+                  {isFaculty && (
+                    <button
+                      id="nav-enrollment"
+                      onClick={() => handleNavClick('enrollment')}
+                      className={getSubnavItemClass(activeNav === 'enrollment' && pathname === '/dashboard')}
+                    >
+                      <FileText className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
+                      <span className="flex-1 text-left truncate">Enrollment Portal</span>
+                      {pendingEnrollmentCount > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                          {pendingEnrollmentCount}
+                        </span>
+                      )}
+                    </button>
+                  )}
 
-            {/* 4. Import DepEd CSV/Excel */}
-            {(isSuperAdmin || isPrincipal || isAdminAssistant) && (
-              <button
-                id="nav-import"
-                onClick={() => handleNavClick('import_csv')}
-                className={getNavItemClass(activeNav === 'import_csv' && pathname === '/dashboard')}
-              >
-                <UploadCloud className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span>Import DepEd CSV</span>
-              </button>
-            )}
+                  {/* Sub-menu 2: Student Database */}
+                  <button
+                    id="nav-students"
+                    onClick={() => handleNavClick('students')}
+                    className={getSubnavItemClass(activeNav === 'students' && pathname === '/dashboard')}
+                  >
+                    <Users className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400 shrink-0" />
+                    <span className="flex-1 text-left truncate">Student Database</span>
+                  </button>
 
-            {/* 5. Academic Sections & Subject Assignments */}
+                  {/* Sub-menu 3: Student Promotion */}
+                  {(isSuperAdmin || isPrincipal || isAdminAssistant || isTeacherOrMaster) && (
+                    <button
+                      id="nav-promotion"
+                      onClick={() => handleNavClick('promotion')}
+                      className={getSubnavItemClass(activeNav === 'promotion' && pathname === '/dashboard')}
+                    >
+                      <TrendingUp className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                      <span className="flex-1 text-left truncate">Student Promotion</span>
+                    </button>
+                  )}
+
+                  {/* Sub-menu 4: Import DepEd CSV */}
+                  {(isSuperAdmin || isPrincipal || isAdminAssistant) && (
+                    <button
+                      id="nav-import"
+                      onClick={() => handleNavClick('import_csv')}
+                      className={getSubnavItemClass(activeNav === 'import_csv' && pathname === '/dashboard')}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                      <span className="flex-1 text-left truncate">Import DepEd CSV</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 3. Sections & Subjects */}
             {(isSuperAdmin || isPrincipal || isAdminAssistant || isTeacherOrMaster) && (
               <button
                 id="nav-academic"
                 onClick={() => handleNavClick('academic')}
                 className={getNavItemClass(activeNav === 'academic' && pathname === '/dashboard')}
               >
-                <BookOpen className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <BookOpen className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                 <span>Sections &amp; Subjects</span>
               </button>
             )}
 
-            {/* 6. Classroom Attendance (Manual & Turnstile Combined - Super Admin, Principal, Teachers) */}
+            {/* 4. Classroom Roll Call */}
             {(isSuperAdmin || isPrincipal || isTeacherOrMaster) && (
               <button
                 id="nav-attendance"
                 onClick={() => handleNavClick('attendance')}
                 className={getNavItemClass(activeNav === 'attendance' && pathname === '/dashboard')}
               >
-                <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <Clock className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                 <span>Classroom Roll Call</span>
               </button>
             )}
 
-            {/* 7. School Settings (Super Admin & Principal) */}
-            {(isSuperAdmin || isPrincipal) && (
+            {/* 5. Faculty & Staff / DTR */}
+            {(isSuperAdmin || isPrincipal || isAdminAssistant || isTeacherOrMaster) && (
               <button
-                id="nav-settings"
-                onClick={() => handleNavClick('school_profile')}
-                className={getNavItemClass((activeNav === 'school_profile' || activeNav === 'settings') && pathname === '/dashboard')}
+                id="nav-users"
+                onClick={() => handleNavClick('users')}
+                className={getNavItemClass((activeNav === 'users' || activeNav === 'staff') && pathname === '/dashboard')}
               >
-                <SchoolIcon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span>School Settings</span>
+                <Users className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+                <span>{isTeacherOrMaster && !isAdminAssistant && !isPrincipal ? 'Faculty & My DTR' : 'Faculty & Staff (DTR)'}</span>
               </button>
             )}
 
-            {/* 8. Immutable SOC 2 Audit Ledger (Super Admin & Principal) */}
+            {/* SETTINGS GROUP */}
             {(isSuperAdmin || isPrincipal) && (
-              <button
-                id="nav-audit"
-                onClick={() => handleNavClick('audit')}
-                className={getNavItemClass(activeNav === 'audit' && pathname === '/dashboard')}
-              >
-                <ShieldAlert className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                <span>Immutable Audit Log</span>
-              </button>
+              <div className="pt-3">
+                <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3 mb-1.5 flex items-center gap-1.5">
+                  <Settings className="w-3 h-3 text-slate-500" />
+                  <span>Settings</span>
+                </div>
+
+                {/* School Settings */}
+                <button
+                  id="nav-settings"
+                  onClick={() => handleNavClick('school_profile')}
+                  className={getNavItemClass((activeNav === 'school_profile' || activeNav === 'settings') && pathname === '/dashboard')}
+                >
+                  <SchoolIcon className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+                  <span>School Settings</span>
+                </button>
+
+                {/* Immutable Audit Log */}
+                <button
+                  id="nav-audit"
+                  onClick={() => handleNavClick('audit')}
+                  className={getNavItemClass(activeNav === 'audit' && pathname === '/dashboard')}
+                >
+                  <ShieldAlert className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+                  <span>Immutable Audit Log</span>
+                </button>
+              </div>
             )}
 
-            {/* 9. Standalone Kiosk Terminal (Super Admin & Principal) */}
+            {/* HARDWARE STATIONS */}
             {(isSuperAdmin || isPrincipal) && (
               <div className="pt-2">
                 <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3 mb-1.5">
@@ -359,7 +474,7 @@ export default function BrandedShell({ children, activeNav, onNavChange }: Brand
               </div>
             )}
 
-            {/* 10. DepEd Official Forms SF1/SF2/SF5 (Super Admin, Principal, Teachers) */}
+            {/* DEPED OFFICIAL FORMS */}
             {(isSuperAdmin || isPrincipal || isTeacherOrMaster) && (
               <Link
                 href="/deped-forms"
@@ -373,6 +488,24 @@ export default function BrandedShell({ children, activeNav, onNavChange }: Brand
                 <span>DepEd SF1 / SF2 / SF5</span>
               </Link>
             )}
+
+            {/* PUBLIC PORTALS */}
+            <div className="pt-2">
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3 mb-1.5">
+                Public Portals
+              </div>
+              <Link
+                href="/enroll"
+                target="_blank"
+                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium transition-all text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80 font-semibold"
+              >
+                <div className="flex items-center space-x-2.5">
+                  <UserPlus className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                  <span>Public /enroll Portal</span>
+                </div>
+                <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+              </Link>
+            </div>
           </nav>
 
           {/* E. Bottom Role Indicator / Switcher */}

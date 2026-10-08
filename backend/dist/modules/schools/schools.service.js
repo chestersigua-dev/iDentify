@@ -234,6 +234,10 @@ let SchoolsService = SchoolsService_1 = class SchoolsService {
                 school.primary_color = data.primaryColor || data.primary_color;
             if (data.accentColor || data.accent_color)
                 school.accent_color = data.accentColor || data.accent_color;
+            if (data.schoolType || data.school_type)
+                school.school_type = data.schoolType || data.school_type;
+            if (data.enabledGradeLevels || data.enabled_grade_levels)
+                school.enabled_grade_levels = data.enabledGradeLevels || data.enabled_grade_levels;
             await this.audit.log({
                 schoolId: school.id,
                 actorId,

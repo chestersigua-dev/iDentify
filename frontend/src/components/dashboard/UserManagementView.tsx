@@ -57,13 +57,16 @@ interface UserManagementViewProps {
 }
 
 const MODULES_LIST = [
-  { id: 'users', label: 'Faculty & Staff Users' },
+  { id: 'metrics', label: 'Dashboard & Metrics' },
+  { id: 'enrollment', label: 'Enrollment Portal' },
   { id: 'students', label: 'Student Database (BEEF)' },
+  { id: 'promotion', label: 'Student Promotion' },
+  { id: 'import_csv', label: 'Import DepEd CSV' },
+  { id: 'academic', label: 'Sections & Subjects' },
   { id: 'attendance', label: 'Classroom Roll Call' },
-  { id: 'academic', label: 'Sections & Subjects Assignment' },
+  { id: 'users', label: 'Faculty & Staff Users' },
   { id: 'settings', label: 'School Settings & Branding' },
   { id: 'audit', label: 'Immutable Audit Ledger' },
-  { id: 'metrics', label: 'Academic & Attendance Metrics' },
 ];
 
 const MONTH_NAMES = [
