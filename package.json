@@ -1,0 +1,26 @@
+{
+  "name": "identify",
+  "version": "3.0.0",
+  "private": true,
+  "description": "iDentify - DepEd Multi-Tenant School Management & Attendance SaaS Platform",
+  "scripts": {
+    "dev": "node run-dev.js",
+    "dev:backend": "npm run start:dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "start": "node run-dev.js",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "build:android": "powershell -Command \"cd android; .\\gradlew.bat assembleDebug; Copy-Item app\\build\\outputs\\apk\\debug\\app-debug.apk -Destination ..\\dist\\iDentify-v3.0.0-android.apk\"",
+    "launch": "powershell -ExecutionPolicy Bypass -File ./launch.ps1"
+  },
+  "keywords": [
+    "deped",
+    "attendance",
+    "rfid",
+    "kiosk",
+    "turnstile",
+    "school-management",
+    "saas"
+  ],
+  "author": "iDentify Team",
+  "license": "UNLICENSED"
+}

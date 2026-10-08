@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="mabiniGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer Ring -->
+  <circle cx="100" cy="100" r="92" fill="none" stroke="url(#goldGrad)" stroke-width="6"/>
+  <circle cx="100" cy="100" r="84" fill="url(#mabiniGrad)"/>
+  <!-- Inner Gear/Border -->
+  <circle cx="100" cy="100" r="82" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="4,4"/>
+  <!-- DepEd Torch of Knowledge -->
+  <path d="M96 125 L104 125 L102 145 L98 145 Z" fill="url(#goldGrad)"/>
+  <path d="M92 125 L108 125 L105 118 L95 118 Z" fill="#ffffff"/>
+  <!-- Flame -->
+  <path d="M100 80 Q108 95 103 108 Q100 115 97 108 Q92 95 100 80 Z" fill="#ef4444"/>
+  <path d="M100 88 Q104 98 101 106 Q100 110 99 106 Q96 98 100 88 Z" fill="#fbbf24"/>
+  <!-- Open Book of Wisdom -->
+  <path d="M70 120 Q85 115 100 120 Q115 115 130 120 L130 135 Q115 130 100 135 Q85 130 70 135 Z" fill="#ffffff" opacity="0.95"/>
+  <path d="M100 120 L100 135" stroke="#1e3a8a" stroke-width="1.5"/>
+  <!-- Three Stars (Luzon, Visayas, Mindanao) -->
+  <polygon points="100,55 102,60 107,60 103,63 105,68 100,65 95,68 97,63 93,60 98,60" fill="url(#goldGrad)"/>
+  <polygon points="65,75 67,80 72,80 68,83 70,88 65,85 60,88 62,83 58,80 63,80" fill="url(#goldGrad)"/>
+  <polygon points="135,75 137,80 142,80 138,83 140,88 135,85 130,88 132,83 128,80 133,80" fill="url(#goldGrad)"/>
+  <!-- Text Ring Simulation -->
+  <text x="100" y="44" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#ffffff" text-anchor="middle" letter-spacing="1.5">MABINI NATIONAL HIGH</text>
+  <text x="100" y="165" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#fbbf24" text-anchor="middle" letter-spacing="1">DEPED ID: 301234</text>
+</svg>
