@@ -37,8 +37,8 @@ export default function SchoolInfoModal({
   const fullSubdomainUrl = `http://localhost:3000/schools/${school.slug}`;
 
   return (
-    <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in font-sans">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl relative text-slate-100 my-8">
+    <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto font-sans">
+      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl relative text-slate-100 my-8 animate-fade-in">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -146,8 +146,8 @@ export default function SchoolInfoModal({
               <Mail className="w-3.5 h-3.5 text-purple-400" />
               <span>Official Email & Phone</span>
             </div>
-            <div className="text-white font-mono truncate">{school.contact_email || 'admin@mabini.deped.gov.ph'}</div>
-            <div className="text-slate-400 text-[11px] font-mono">{school.contact_phone || '(02) 8642-1234'}</div>
+            <div className="text-white font-mono truncate">{school.contact_email || `${school.slug || 'school'}@deped.gov.ph`}</div>
+            <div className="text-slate-400 text-[11px] font-mono">{school.contact_phone || '0905 669 1862'}</div>
           </div>
 
           {/* Dynamic White-Label Brand Tokens */}

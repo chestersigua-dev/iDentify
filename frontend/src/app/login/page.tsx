@@ -10,12 +10,15 @@ import {
   Lock,
   Mail,
   ShieldCheck,
-  Building2,
   ChevronRight,
   Sparkles,
-  School as SchoolIcon,
   KeyRound,
+  AlertCircle,
+  X,
+  ArrowRight,
+  RefreshCw,
 } from 'lucide-react';
+import { UserAccount } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,11 +26,18 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('superadmin@deped.gov.ph');
   const [password, setPassword] = useState('SuperAdmin123!');
-  const [totpCode, setTotpCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hideQuickLogins, setHideQuickLogins] = useState(false);
-  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+
+  // Post-Login 2FA States
+  const [pendingUser, setPendingUser] = useState<UserAccount | null>(null);
+
+  // 2FA Verification Modal (ONLY shown for accounts with active 2FA enrollment)
+  const [show2FAVerifyModal, setShow2FAVerifyModal] = useState(false);
+  const [verifyTotpCode, setVerifyTotpCode] = useState('');
+  const [verifyError, setVerifyError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -35,30 +45,71 @@ export default function LoginPage() {
         localStorage.getItem('identify_hide_quick_logins') === 'true' ||
         localStorage.getItem('identify_production_launch_mode') === 'true';
       setHideQuickLogins(hidden);
-      const twoFa = localStorage.getItem('identify_2fa_enabled') === 'true';
-      setIs2FAEnabled(twoFa);
     }
-  }, []);
+    if (typeof document !== 'undefined' && school?.name) {
+      document.title = `Login - ${school.name} (DepEd ID: ${school.deped_school_id}) | iDentify`;
+    }
+  }, [school]);
 
   const quickRoles = [
     { role: 'SUPER_ADMIN' as UserRole, email: 'superadmin@deped.gov.ph', pass: 'SuperAdmin123!', label: 'Super Admin' },
-    { role: 'PRINCIPAL' as UserRole, email: 'sawatelementaryschool@gmail.com', pass: 'Principal123!', label: 'Principal (Rico Idos)' },
+    {
+      role: 'PRINCIPAL' as UserRole,
+      email: school.contact_email || 'sawatelementaryschool@gmail.com',
+      pass: 'Principal123!',
+      label: school.school_head_name ? `Principal (${school.school_head_name})` : 'Principal',
+    },
     { role: 'ADMIN_ASSISTANT' as UserRole, email: 'adminassistant.sawat@deped.gov.ph', pass: 'AdminAssistant123!', label: 'Admin Assistant (AO)' },
     { role: 'HEAD_TEACHER' as UserRole, email: 'ht.jhs@mabini.deped.gov.ph', pass: 'Head Teacher' },
     { role: 'MASTER_TEACHER' as UserRole, email: 'mt.ramos@mabini.deped.gov.ph', pass: 'Master Teacher' },
     { role: 'TEACHER' as UserRole, email: 'teacher.santos@mabini.deped.gov.ph', pass: 'Teacher' },
   ];
 
+  // Helper to verify if user has active 2FA enrollment
+  const isUser2FAEnrolled = (user: UserAccount): boolean => {
+    if (typeof window !== 'undefined') {
+      const userSpecific = localStorage.getItem(`identify_2fa_enabled_${user.id}`);
+      if (userSpecific === 'true') return true;
+      if (userSpecific === 'false') return false;
+
+      const emailSpecific = localStorage.getItem(`identify_2fa_enabled_${user.email.toLowerCase()}`);
+      if (emailSpecific === 'true') return true;
+      if (emailSpecific === 'false') return false;
+
+      // If global production/demo 2FA is active and account is superadmin
+      const global2FA = localStorage.getItem('identify_2fa_enabled');
+      if (global2FA === 'true' && user.role === 'SUPER_ADMIN') return true;
+    }
+    return !!user.two_factor_enabled;
+  };
+
+  // Post-login gate: ONLY show 2FA verification if the account is enrolled; otherwise proceed straight to dashboard
+  const authenticateUser = (user: UserAccount) => {
+    setPendingUser(user);
+    const enrolled = isUser2FAEnrolled(user);
+
+    if (enrolled) {
+      // User is enrolled: Prompt for 2FA TOTP code
+      setVerifyTotpCode('');
+      setVerifyError('');
+      setShow2FAVerifyModal(true);
+    } else {
+      // User is NOT enrolled: Do NOT show 2FA at all!
+      loginAs(user);
+      router.push('/dashboard');
+    }
+  };
+
   const handleRolePreFill = (roleObj: typeof quickRoles[0]) => {
     setEmail(roleObj.email);
     setPassword(roleObj.pass);
+    setError('');
     const user = INITIAL_USERS.find((u) => u.role === roleObj.role) || {
       ...INITIAL_USERS[0],
       role: roleObj.role,
       email: roleObj.email,
     };
-    loginAs(user);
-    setError('');
+    authenticateUser(user);
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -90,44 +141,66 @@ export default function LoginPage() {
       return;
     }
 
-    // Guard: Enforce 2FA Authenticator TOTP if enabled
-    if (is2FAEnabled) {
-      const cleanedCode = totpCode.trim();
-      if (!cleanedCode) {
-        setError('Two-Factor Authentication is enabled for this deployment. Please enter your 6-digit Authenticator code.');
-        setLoading(false);
-        return;
-      }
-      if (!/^\d{6}$/.test(cleanedCode)) {
-        setError('Invalid 2FA Code: Please enter a 6-digit verification code from your authenticator app.');
-        setLoading(false);
-        return;
-      }
-    }
-
     setTimeout(() => {
-      // Determine role from email
       const matched = quickRoles.find(
         (r) => r.email.toLowerCase() === lowerEmail,
       );
+      let userToAuth: UserAccount;
       if (matched) {
-        const user = INITIAL_USERS.find((u) => u.role === matched.role) || {
+        userToAuth = INITIAL_USERS.find((u) => u.role === matched.role) || {
           ...INITIAL_USERS[0],
           role: matched.role,
           email: matched.email,
         };
-        loginAs(user);
       } else {
-        loginAs({
+        userToAuth = INITIAL_USERS.find(
+          (u) => u.email.toLowerCase() === lowerEmail || u.username.toLowerCase() === lowerEmail,
+        ) || {
           ...INITIAL_USERS[0],
           email: lowerEmail,
           full_name: lowerEmail.split('@')[0],
           role: 'TEACHER',
-        });
+          two_factor_enabled: false,
+        };
       }
-      router.push('/dashboard');
       setLoading(false);
-    }, 600);
+      authenticateUser(userToAuth);
+    }, 400);
+  };
+
+  // ---------------------------------------------------------------------------
+  // 2FA VERIFICATION HANDLERS (ENROLLED USERS)
+  // ---------------------------------------------------------------------------
+  const handleConfirm2FAVerification = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = verifyTotpCode.trim();
+    if (!clean) {
+      setVerifyError('Please enter the 6-digit Authenticator code.');
+      return;
+    }
+    if (!/^\d{6}$/.test(clean)) {
+      setVerifyError('Invalid format: Code must be exactly 6 digits.');
+      return;
+    }
+
+    setIsVerifying(true);
+    setVerifyError('');
+
+    setTimeout(() => {
+      if (pendingUser) {
+        loginAs(pendingUser);
+        setShow2FAVerifyModal(false);
+        router.push('/dashboard');
+      }
+      setIsVerifying(false);
+    }, 400);
+  };
+
+  const handleCancel2FAVerification = () => {
+    setShow2FAVerifyModal(false);
+    setPendingUser(null);
+    setVerifyTotpCode('');
+    setVerifyError('');
   };
 
   return (
@@ -209,38 +282,12 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-slate-300 flex items-center space-x-1.5">
-                <KeyRound className="w-3.5 h-3.5 text-slate-400" />
-                <span>2FA Authenticator TOTP</span>
-              </label>
-              {is2FAEnabled ? (
-                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" /> Required (2FA Active)
-                </span>
-              ) : (
-                <span className="text-[10px] text-slate-500">Optional</span>
-              )}
-            </div>
-            <input
-              type="text"
-              maxLength={6}
-              value={totpCode}
-              onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
-              placeholder={is2FAEnabled ? 'Enter 6-digit Authenticator code' : '6-digit authenticator code (optional)'}
-              className={`w-full bg-slate-900 border ${
-                is2FAEnabled ? 'border-emerald-500/50 focus:border-emerald-400' : 'border-slate-700 focus:border-blue-500'
-              } rounded-xl px-4 py-2 text-xs text-white font-mono placeholder-slate-500 focus:outline-none tracking-wider`}
-            />
-          </div>
-
           <button
             type="submit"
             disabled={loading}
             className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center space-x-1.5 active:scale-95 disabled:opacity-50"
           >
-            <span>{loading ? 'Authenticating...' : 'Sign In to DepEd Portal'}</span>
+            <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
             <ChevronRight className="w-4 h-4" />
           </button>
         </form>
@@ -294,9 +341,8 @@ export default function LoginPage() {
               <button
                 key={s.id}
                 onClick={() => setSchool(s)}
-                className={`text-[11px] underline ${
-                  school.id === s.id ? 'text-blue-400 font-bold' : 'text-slate-400'
-                }`}
+                className={`text-[11px] underline ${school.id === s.id ? 'text-blue-400 font-bold' : 'text-slate-400'
+                  }`}
               >
                 {s.short_name || s.name.substring(0, 10)}
               </button>
@@ -310,6 +356,103 @@ export default function LoginPage() {
           &larr; Back to Directory
         </Link>
       </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* 2FA VERIFICATION MODAL (For Enrolled Accounts)                     */}
+      {/* ------------------------------------------------------------------ */}
+      {show2FAVerifyModal && pendingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl p-6 shadow-2xl relative z-10 animate-scale-up text-white">
+            <button
+              onClick={handleCancel2FAVerification}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              title="Cancel Verification"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center space-x-3 mb-5">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Two-Factor Authentication</h3>
+                <p className="text-xs text-slate-400">Security check for enrolled DepEd account</p>
+              </div>
+            </div>
+
+            {/* Account pill */}
+            <div className="mb-5 p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between">
+              <div className="truncate pr-2">
+                <p className="text-xs font-semibold text-white truncate">{pendingUser.full_name || pendingUser.email}</p>
+                <p className="text-[11px] text-slate-400 truncate">{pendingUser.email}</p>
+              </div>
+              <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                {pendingUser.role}
+              </span>
+            </div>
+
+            {verifyError && (
+              <div className="mb-4 p-3 rounded-xl bg-red-950/70 border border-red-800/80 text-xs text-red-200 flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                <span>{verifyError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirm2FAVerification} className="space-y-4">
+              <div>
+                <label className="text-xs font-medium text-slate-300 block mb-1.5">
+                  Enter 6-Digit Authenticator Code
+                </label>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                  <input
+                    type="text"
+                    maxLength={6}
+                    autoFocus
+                    value={verifyTotpCode}
+                    onChange={(e) => setVerifyTotpCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-center text-xl font-mono tracking-[0.35em] text-emerald-400 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 font-bold"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  Open your Google Authenticator, Microsoft Authenticator, or hardware token.
+                </p>
+              </div>
+
+              <div className="pt-2 flex flex-col space-y-2">
+                <button
+                  type="submit"
+                  disabled={isVerifying || verifyTotpCode.length < 6}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center space-x-1.5 disabled:opacity-50"
+                >
+                  {isVerifying ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Verifying Code...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Verify & Enter Dashboard</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleCancel2FAVerification}
+                  className="w-full py-2 rounded-xl text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors"
+                >
+                  Cancel & Back to Sign In
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

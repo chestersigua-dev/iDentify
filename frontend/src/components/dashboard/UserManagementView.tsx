@@ -323,7 +323,7 @@ export default function UserManagementView({
       employee_number: `DEPED-${Math.floor(1000000 + Math.random() * 9000000)}`,
       plantilla_item_no: `OSEC-DECSB-TCH1-00${Math.floor(100 + Math.random() * 900)}-2024`,
       salary_grade: 'SG-11, Step 1',
-      station: school.name || 'Mabini National High School',
+      station: school.name || 'Sawat Elementary School',
       employment_status: 'Permanent',
       assigned_tier: 'JUNIOR_HIGH',
       two_factor_enabled: false,
@@ -355,7 +355,7 @@ export default function UserManagementView({
       employee_number: user.employee_number || '',
       plantilla_item_no: user.plantilla_item_no || '',
       salary_grade: user.salary_grade || 'SG-11',
-      station: user.station || school.name || 'Mabini National High School',
+      station: user.station || school.name || 'Sawat Elementary School',
       employment_status: user.employment_status || 'Permanent',
       assigned_tier: user.assigned_tier || 'JUNIOR_HIGH',
       two_factor_enabled: user.two_factor_enabled,
@@ -1299,8 +1299,8 @@ export default function UserManagementView({
       {/* CREATE / EDIT USER MODAL (WITH RFID TAG ASSIGNMENT)          */}
       {/* ============================================================= */}
       {showModal && (
-        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl p-6">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 animate-fade-in">
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <h3 className="text-lg font-black text-white">
                 {editingUserId ? 'Edit Faculty / Staff Member' : 'Add New Faculty / Staff Member'}
@@ -1518,7 +1518,7 @@ export default function UserManagementView({
                       type="text"
                       value={formData.station}
                       onChange={(e) => setFormData({ ...formData, station: e.target.value })}
-                      placeholder="e.g. Mabini National High School"
+                      placeholder={`e.g. ${school.name || 'Sawat Elementary School'}`}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-indigo-500"
                     />
                   </div>
@@ -1577,8 +1577,8 @@ export default function UserManagementView({
       {/* ASSIGN CLASSES MODAL                                          */}
       {/* ============================================================= */}
       {showAssignModal && selectedUserForAssign && (
-        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-6">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl p-6 animate-fade-in">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
                 <h3 className="text-base font-bold text-white">Assign Class &amp; Subjects</h3>
@@ -1680,12 +1680,12 @@ export default function UserManagementView({
       {/* ============================================================= */}
       {showDtrModal && (
         <div
-          className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-transparent print:static print:inset-auto animate-fade-in"
+          className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:p-0 print:bg-transparent print:static print:inset-auto"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowDtrModal(false);
           }}
         >
-          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-5xl h-[94vh] flex flex-col shadow-2xl overflow-hidden print:max-h-none print:max-w-none print:border-none print:shadow-none print:bg-transparent print:h-auto">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-5xl h-[94vh] flex flex-col shadow-2xl overflow-hidden print:max-h-none print:max-w-none print:border-none print:shadow-none print:bg-transparent print:h-auto animate-fade-in">
             {/* Modal Top Header (Sticky) */}
             <div className="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-3 shrink-0 no-print">
               <div className="flex items-center space-x-3 min-w-0">

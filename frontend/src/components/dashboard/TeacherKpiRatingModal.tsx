@@ -158,12 +158,12 @@ export default function TeacherKpiRatingModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in"
+      className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[92vh] overflow-y-auto custom-scrollbar">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl relative text-slate-900 dark:text-slate-100 max-h-[92vh] overflow-y-auto custom-scrollbar animate-fade-in">
         {/* Close Button */}
         <button
           onClick={onClose}

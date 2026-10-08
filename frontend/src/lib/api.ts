@@ -1711,18 +1711,27 @@ export const apiClient = {
     return [DEFAULT_SCHOOL];
   },
 
-  async updateSchool(id: string, payload: any): Promise<School> {
+  async updateSchool(id: string, payload: any, actorRole?: string): Promise<School> {
     try {
-      const res = await fetch(`${API_BASE}/api/schools/${id}`, {
+      const url = new URL(`${API_BASE}/api/schools/${id}`);
+      if (actorRole) {
+        url.searchParams.set('actorRole', actorRole);
+      }
+      const res = await fetch(url.toString(), {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(actorRole ? { 'x-user-role': actorRole } : {}),
+        },
+        body: JSON.stringify({ ...payload, actorRole }),
       });
       if (res.ok) {
         const json = await res.json();
         return json.data;
       }
-    } catch {}
+    } catch (err) {
+      console.warn('apiClient.updateSchool network or CORS fallback:', err);
+    }
     return { ...DEFAULT_SCHOOL, ...payload };
   },
 

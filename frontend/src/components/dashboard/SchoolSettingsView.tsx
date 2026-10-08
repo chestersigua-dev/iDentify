@@ -34,7 +34,9 @@ import {
   CheckCircle2,
   KeyRound,
   Smartphone,
-  Lock
+  Lock,
+  Upload,
+  Camera
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useTenant } from '@/lib/tenant-context';
@@ -115,6 +117,19 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
   const [isSaved, setIsSaved] = useState(false);
   const [isLoadedNotice, setIsLoadedNotice] = useState(false);
   const [showTestModal, setShowTestModal] = useState(false);
+
+  // RBAC Institutional Permissions: Super Admin & School Head (Principal)
+  const isSuperAdmin = currentRole === 'SUPER_ADMIN';
+  const isPrincipal = currentRole === 'PRINCIPAL';
+  const canEditInstitutional = isSuperAdmin || isPrincipal;
+
+  // Logo File Upload states
+  const logoFileInputRef = React.useRef<HTMLInputElement>(null);
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isDraggingLogo, setIsDraggingLogo] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
 
   // Super Admin Purge states
   const [isPurgeModalOpen, setIsPurgeModalOpen] = useState(false);
@@ -331,6 +346,52 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
     }
   }, [school]);
 
+  const handleProcessLogoFile = (file: File) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/') && !file.name.toLowerCase().endsWith('.svg')) {
+      setLogoUploadError('Please select a valid image file (PNG, JPG, SVG, WebP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setLogoUploadError('Logo file size exceeds 5MB limit. Please choose a smaller image.');
+      return;
+    }
+
+    setLogoUploadError(null);
+    setIsUploadingLogo(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setSettings((prev) => ({ ...prev, logo_url: reader.result as string }));
+        setIsUploadingLogo(false);
+      }
+    };
+    reader.onerror = () => {
+      setLogoUploadError('Failed to read logo image. Please try again.');
+      setIsUploadingLogo(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleProcessLogoFile(file);
+    }
+  };
+
+  const handleLogoDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingLogo(false);
+    if (!canEditInstitutional) return;
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleProcessLogoFile(file);
+    }
+  };
+
   const handleLoadCurrentSchoolAndHead = () => {
     const currentDefaults = getSchoolDefaults(school);
     setSettings((prev) => ({
@@ -341,27 +402,69 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
     setTimeout(() => setIsLoadedNotice(false), 3500);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('identify_school_settings', JSON.stringify(settings));
-      window.dispatchEvent(new Event('storage'));
+    if (!canEditInstitutional) {
+      setSaveErrorMessage('Unauthorized: Only Super Administrator and School Head (Principal) can modify institutional identity and accreditation settings.');
+      return;
     }
-    // Update global school tenant context in real-time
+
+    setIsSaving(true);
+    setSaveErrorMessage(null);
+
+    // 1. Persist to browser LocalStorage for offline durability
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('identify_school_settings', JSON.stringify(settings));
+        window.dispatchEvent(new Event('storage'));
+      } catch (err) {
+        console.error('Failed to save to localStorage:', err);
+      }
+    }
+
+    // 2. Persist to backend API if school exists
+    if (school?.id) {
+      try {
+        await apiClient.updateSchool(
+          school.id,
+          {
+            name: settings.school_name,
+            deped_school_id: settings.school_id,
+            logo_url: settings.logo_url,
+            contact_phone: settings.contact_number,
+            contact_email: settings.email,
+            school_head_name: settings.school_head_name,
+            school_head_title: settings.school_head_title,
+            division: settings.division,
+            region: settings.region,
+          },
+          currentRole,
+        );
+      } catch (err) {
+        console.warn('Backend updateSchool sync notice:', err);
+      }
+    }
+
+    // 3. Update global school tenant context in real-time
     if (setSchool && school) {
       setSchool({
         ...school,
         name: settings.school_name,
+        short_name: settings.school_name ? (settings.school_name.length > 20 ? settings.school_name.substring(0, 18) + '...' : settings.school_name) : school.short_name,
         deped_school_id: settings.school_id,
         logo_url: settings.logo_url,
         contact_phone: settings.contact_number,
         contact_email: settings.email,
         school_head_name: settings.school_head_name,
         school_head_title: settings.school_head_title,
+        division: settings.division,
+        region: settings.region,
       });
     }
+
+    setIsSaving(false);
     setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
+    setTimeout(() => setIsSaved(false), 3500);
   };
 
   return (
@@ -664,25 +767,40 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
             <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-blue-400" />
-                Institutional Identity &amp; Accreditation
-              </h3>
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-blue-400" />
+                  Institutional Identity &amp; Accreditation
+                </h3>
+                {canEditInstitutional ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center gap-1 shadow-sm">
+                    <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                    Editable by Super Admin &amp; School Head
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center gap-1 shadow-sm">
+                    <Lock className="w-3 h-3 text-amber-400" />
+                    Read-Only (Super Admin / School Head required)
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Current active school parameters and DepEd institutional accreditation
+                Official DepEd institutional parameters, accreditation identifiers, contact channels, and official seal
               </p>
             </div>
 
             {/* Reload Current School Setting & School Head Button */}
-            <button
-              type="button"
-              onClick={handleLoadCurrentSchoolAndHead}
-              className="px-3.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/40 text-xs font-semibold flex items-center gap-1.5 transition self-start sm:self-auto cursor-pointer"
-              title="Load current active DepEd school and school head credentials"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-blue-400" />
-              <span>Load Current School &amp; Head</span>
-            </button>
+            {canEditInstitutional && (
+              <button
+                type="button"
+                onClick={handleLoadCurrentSchoolAndHead}
+                className="px-3.5 py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/40 text-xs font-semibold flex items-center gap-1.5 transition self-start sm:self-auto cursor-pointer"
+                title="Load current active DepEd school and school head credentials"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-blue-400" />
+                <span>Load Current School &amp; Head</span>
+              </button>
+            )}
           </div>
 
           {/* Current School Context Banner / Notification */}
@@ -709,9 +827,11 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
                 <input
                   type="text"
                   required
+                  disabled={!canEditInstitutional}
                   value={settings.school_name}
                   onChange={(e) => setSettings({ ...settings, school_name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                  placeholder="e.g. Sawat Elementary School"
+                  className="w-full bg-slate-950 border border-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
                 />
               </div>
 
@@ -723,41 +843,139 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
                   <input
                     type="text"
                     required
+                    disabled={!canEditInstitutional}
                     value={settings.school_id}
                     onChange={(e) => setSettings({ ...settings, school_id: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-mono text-blue-400 focus:outline-none focus:border-blue-500"
+                    placeholder="101692"
+                    className="w-full bg-slate-950 border border-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl px-4 py-2.5 text-sm font-mono text-blue-400 focus:outline-none focus:border-blue-500 transition"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Division & Region
+                    Division &amp; Region
                   </label>
                   <input
                     type="text"
+                    disabled={!canEditInstitutional}
                     value={settings.division}
                     onChange={(e) => setSettings({ ...settings, division: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                    placeholder="Division of Pangasinan II • Region I"
+                    className="w-full bg-slate-950 border border-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
                   />
                 </div>
               </div>
             </div>
 
-            {/* School Logo Preview & Edit */}
+            {/* School Logo Preview, File Upload & URL Editor */}
             <div className="space-y-3">
-              <label className="block text-xs font-semibold text-slate-300">Official School Seal / Logo</label>
-              <div className="flex flex-col items-center justify-center p-4 border border-dashed border-slate-700 rounded-2xl bg-slate-950">
-                <img
-                  src={settings.logo_url}
-                  alt="School Seal"
-                  className="w-24 h-24 rounded-2xl object-cover border-2 border-blue-500/40 shadow-md mb-2"
-                />
-                <input
-                  type="text"
-                  value={settings.logo_url}
-                  onChange={(e) => setSettings({ ...settings, logo_url: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full text-xs bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-300 focus:outline-none focus:border-blue-500"
-                />
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-blue-400" /> Official School Seal / Logo
+                </label>
+                {settings.logo_url && settings.logo_url !== '/logos/sawat.png' && canEditInstitutional && (
+                  <button
+                    type="button"
+                    onClick={() => setSettings({ ...settings, logo_url: '/logos/sawat.png' })}
+                    className="text-[10px] text-slate-400 hover:text-blue-300 hover:underline transition cursor-pointer"
+                    title="Reset to default Sawat Elementary seal"
+                  >
+                    Reset Default
+                  </button>
+                )}
+              </div>
+
+              {/* Hidden file picker input */}
+              <input
+                ref={logoFileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                onChange={handleLogoFileUpload}
+                disabled={!canEditInstitutional || isUploadingLogo}
+                className="hidden"
+              />
+
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (canEditInstitutional) setIsDraggingLogo(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  setIsDraggingLogo(false);
+                }}
+                onDrop={handleLogoDrop}
+                className={`flex flex-col items-center justify-center p-4 border rounded-2xl bg-slate-950 transition-all ${
+                  isDraggingLogo
+                    ? 'border-blue-500 bg-blue-950/40 ring-2 ring-blue-500/40'
+                    : 'border-dashed border-slate-700 hover:border-slate-600'
+                }`}
+              >
+                {/* Logo Image Preview with Hover Overlay */}
+                <div className="relative group mb-3">
+                  <img
+                    src={settings.logo_url || '/logos/sawat.png'}
+                    alt="Official School Seal"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = '/logos/sawat.png';
+                    }}
+                    className="w-24 h-24 rounded-2xl object-cover border-2 border-blue-500/40 shadow-lg bg-slate-900"
+                  />
+                  {canEditInstitutional && (
+                    <button
+                      type="button"
+                      onClick={() => logoFileInputRef.current?.click()}
+                      className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover:opacity-100 rounded-2xl flex flex-col items-center justify-center gap-1 text-white transition-opacity cursor-pointer border border-blue-400/50"
+                      title="Upload new school seal image"
+                    >
+                      <Camera className="w-5 h-5 text-blue-400" />
+                      <span className="text-[10px] font-bold">Replace Logo</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Upload Button */}
+                {canEditInstitutional ? (
+                  <div className="flex flex-col items-center gap-1.5 w-full">
+                    <button
+                      type="button"
+                      onClick={() => logoFileInputRef.current?.click()}
+                      disabled={isUploadingLogo}
+                      className="w-full px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-98 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md shadow-blue-950/40 transition cursor-pointer disabled:opacity-50"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{isUploadingLogo ? 'Processing...' : 'Upload School Logo'}</span>
+                    </button>
+                    <span className="text-[10px] text-slate-400 text-center">
+                      PNG, JPG, SVG, WebP up to 5MB
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-[10px] text-slate-500 text-center font-medium">
+                    Upload locked (Super Admin or School Head required)
+                  </span>
+                )}
+
+                {/* Upload Error Banner */}
+                {logoUploadError && (
+                  <div className="mt-2 text-[11px] text-rose-400 bg-rose-950/40 border border-rose-800/60 rounded-lg px-2.5 py-1 text-center w-full">
+                    {logoUploadError}
+                  </div>
+                )}
+
+                {/* URL Input Fallback */}
+                <div className="w-full mt-3 pt-3 border-t border-slate-800/80">
+                  <label className="block text-[10px] font-medium text-slate-400 mb-1">
+                    Or Direct Image URL / Path:
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.logo_url}
+                    onChange={(e) => setSettings({ ...settings, logo_url: e.target.value })}
+                    disabled={!canEditInstitutional}
+                    placeholder="/logos/sawat.png"
+                    className="w-full text-xs bg-slate-900 border border-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg px-2.5 py-1.5 text-slate-300 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -769,9 +987,11 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
               </label>
               <input
                 type="text"
+                disabled={!canEditInstitutional}
                 value={settings.address}
                 onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                placeholder="Sawat, Urbiztondo, Pangasinan 2414"
+                className="w-full bg-slate-950 border border-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -781,9 +1001,11 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
                 </label>
                 <input
                   type="text"
+                  disabled={!canEditInstitutional}
                   value={settings.contact_number}
                   onChange={(e) => setSettings({ ...settings, contact_number: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                  placeholder="0905 669 1862"
+                  className="w-full bg-slate-950 border border-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
                 />
               </div>
               <div>
@@ -792,9 +1014,11 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
                 </label>
                 <input
                   type="email"
+                  disabled={!canEditInstitutional}
                   value={settings.email}
                   onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500"
+                  placeholder="sawatelementaryschool@gmail.com"
+                  className="w-full bg-slate-950 border border-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 transition"
                 />
               </div>
             </div>
@@ -804,10 +1028,21 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
         {/* Card 2: School Head Administration */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-indigo-400" />
-              School Head &amp; Executive Signatory
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-indigo-400" />
+                School Head &amp; Executive Signatory
+              </h3>
+              {canEditInstitutional ? (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3 text-indigo-400" /> Authorized Signatory
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700 flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Read-Only
+                </span>
+              )}
+            </div>
             <span className="text-xs font-mono text-indigo-400 bg-indigo-950/60 px-2.5 py-1 rounded-lg border border-indigo-800">
               Active Plantilla Head: {school?.school_head_name || 'Dr. Rico Idos'} &bull; {school?.school_head_title || 'Principal I'}
             </span>
@@ -820,9 +1055,11 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
               </label>
               <input
                 type="text"
+                disabled={!canEditInstitutional}
                 value={settings.school_head_name}
                 onChange={(e) => setSettings({ ...settings, school_head_name: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                placeholder="Dr. Rico Idos"
+                className="w-full bg-slate-950 border border-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
               />
             </div>
             <div>
@@ -831,9 +1068,11 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
               </label>
               <input
                 type="text"
+                disabled={!canEditInstitutional}
                 value={settings.school_head_title}
                 onChange={(e) => setSettings({ ...settings, school_head_title: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                placeholder="Principal I"
+                className="w-full bg-slate-950 border border-slate-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition"
               />
             </div>
           </div>
@@ -1185,7 +1424,7 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
         </div>
 
         {/* Super Admin Deployment & Lifecycle Controls: Exclusively for SUPER_ADMIN */}
-        {currentRole === 'SUPER_ADMIN' && (
+        {currentRole === 'SUPER_ADMIN' ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between pt-2">
               <div className="flex items-center gap-2">
@@ -1284,22 +1523,68 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
               </button>
             </div>
           </div>
+        ) : (
+          <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center text-slate-400 shrink-0">
+                <Lock className="w-5 h-5 text-slate-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  System Lifecycle &amp; Irreversible Purge Tasks
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    Super Admin Exclusive
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                  Only Super Administrators can perform system lifecycle tasks, such as factory reset to zero, production launch preparation, and cascading operational data purges.
+                </p>
+              </div>
+            </div>
+            <span className="text-xs text-slate-500 font-mono bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 self-start sm:self-auto shrink-0">
+              Active Role: {currentRole || 'PRINCIPAL'}
+            </span>
+          </div>
         )}
 
-        {/* Submit */}
-        <div className="flex justify-end pt-2">
+        {/* Submit Section */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-slate-800/80">
+          <div>
+            {saveErrorMessage && (
+              <div className="text-xs text-rose-400 bg-rose-950/40 border border-rose-800/50 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                <span>{saveErrorMessage}</span>
+              </div>
+            )}
+            {!canEditInstitutional && (
+              <p className="text-xs text-amber-400/90 flex items-center gap-1.5 font-medium">
+                <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                Institutional settings modification requires Super Administrator or School Head credentials.
+              </p>
+            )}
+          </div>
+
           <button
             type="submit"
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-blue-600/30 flex items-center gap-2 transition"
+            disabled={!canEditInstitutional || isSaving}
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-lg shadow-blue-600/30 flex items-center gap-2 transition active:scale-98 cursor-pointer self-end sm:self-auto"
           >
-            <Save className="w-4 h-4" /> Save School Settings
+            {isSaving ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" /> Saving Settings...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" /> Save School Settings
+              </>
+            )}
           </button>
         </div>
       </form>
 
       {/* Super Admin Purge Confirmation Modal */}
       {isPurgeModalOpen && (
-        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/60 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl text-slate-800 dark:text-slate-200">
             <div className="flex items-start justify-between gap-3 border-b border-rose-100 dark:border-rose-900/40 pb-4">
               <div className="flex items-center gap-3">
@@ -1411,7 +1696,7 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
 
       {/* 2FA Authenticator Setup Modal */}
       {is2FAModalOpen && (
-        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl text-slate-200">
             <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-4">
               <div className="flex items-center gap-3">
@@ -1541,7 +1826,7 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
 
       {/* Prepare for Production Launch Modal */}
       {isLaunchModalOpen && (
-        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-800/60 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl text-slate-800 dark:text-slate-200">
             <div className="flex items-start justify-between gap-3 border-b border-cyan-100 dark:border-cyan-900/40 pb-4">
               <div className="flex items-center gap-3">
@@ -1619,7 +1904,7 @@ export function SchoolSettingsView({ onPurgeComplete }: SchoolSettingsViewProps 
 
       {/* Factory Reset to Zero (Relaunch New School - Genesis) Modal */}
       {isFactoryResetModalOpen && (
-        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/70 rounded-2xl max-w-lg w-full p-6 space-y-6 shadow-2xl text-slate-800 dark:text-slate-200">
             <div className="flex items-start justify-between gap-3 border-b border-rose-100 dark:border-rose-900/40 pb-4">
               <div className="flex items-center gap-3">

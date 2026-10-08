@@ -167,6 +167,8 @@ body.light-theme {
 
 /* ========================================================
    GLASSLIKE SEMI-TRANSPARENT FULLSCREEN MODAL OVERLAYS
+   Full-bleed (-4px edges) with transform: none prevents any
+   subpixel gaps or animation scale gaps on top of the viewport
    ======================================================== */
 .glass-modal-backdrop,
 .modal-backdrop,
@@ -174,6 +176,17 @@ body.light-theme {
 div[class*="fixed"][class*="inset-0"][class*="z-50"],
 div[class*="fixed"][class*="inset-0"][class*="backdrop-blur"],
 .fixed.inset-0.z-50 {
+  position: fixed !important;
+  top: -4px !important;
+  left: -4px !important;
+  right: -4px !important;
+  bottom: -4px !important;
+  width: calc(100vw + 8px) !important;
+  height: calc(100vh + 8px) !important;
+  min-height: calc(100dvh + 8px) !important;
+  margin: 0 !important;
+  transform: none !important;
+  z-index: 100 !important;
   background-color: rgba(15, 23, 42, 0.6) !important;
   backdrop-filter: blur(14px) saturate(160%) !important;
   -webkit-backdrop-filter: blur(14px) saturate(160%) !important;

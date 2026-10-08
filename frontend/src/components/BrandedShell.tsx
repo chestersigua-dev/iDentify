@@ -504,7 +504,7 @@ export default function BrandedShell({ children, activeNav, onNavChange }: Brand
       {mobileMenuOpen && (
         <div
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 z-40 glass-modal-backdrop bg-slate-950/50 backdrop-blur-md md:hidden animate-fade-in"
+          className="fixed inset-0 z-40 glass-modal-backdrop bg-slate-950/50 backdrop-blur-md md:hidden"
         />
       )}
 
@@ -583,12 +583,15 @@ export default function BrandedShell({ children, activeNav, onNavChange }: Brand
                   <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-900 rounded-full" />
                 </div>
 
-                <div className="text-left hidden sm:block">
-                  <div className="text-xs font-bold text-white group-hover:text-blue-300 transition-colors leading-tight">
+                <div className="text-left hidden sm:block max-w-[220px]">
+                  <div className="text-xs font-bold text-white group-hover:text-blue-300 transition-colors leading-tight truncate">
                     {userName}
                   </div>
-                  <div className="text-[10px] text-slate-400 font-medium leading-tight">
+                  <div className="text-[10px] text-slate-400 font-medium leading-tight truncate">
                     {userPosition}
+                  </div>
+                  <div className="text-[9px] font-mono text-yellow-400/90 leading-tight truncate mt-0.5 font-semibold">
+                    {school.short_name || school.name} &bull; ID: {school.deped_school_id}
                   </div>
                 </div>
 
@@ -613,6 +616,10 @@ export default function BrandedShell({ children, activeNav, onNavChange }: Brand
                     </div>
                     <div className="mt-2 text-[10px] text-slate-400 font-mono truncate">
                       {currentUser?.email || 'user@deped.gov.ph'}
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                      <span className="truncate font-semibold text-slate-300" title={school.name}>{school.short_name || school.name}</span>
+                      <span className="text-yellow-400 font-bold shrink-0 ml-1">ID: {school.deped_school_id}</span>
                     </div>
                   </div>
 

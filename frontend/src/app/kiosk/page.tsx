@@ -575,13 +575,24 @@ export default function KioskPage() {
           </Link>
         </div>
 
-        {/* Center: School Name & DepEd ID (Below) */}
-        <div className="text-center flex flex-col items-center justify-center space-y-1">
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-            {school.name}
-          </h1>
+        {/* Center: School Logo, School Name & DepEd ID */}
+        <div className="text-center flex flex-col items-center justify-center space-y-1.5">
+          <div className="flex items-center justify-center gap-2.5">
+            {school.logo_url && (
+              <div className="w-9 h-9 rounded-xl overflow-hidden p-0.5 bg-slate-950/80 border border-slate-700/80 shadow-md shrink-0 flex items-center justify-center">
+                <img
+                  src={school.logo_url}
+                  alt={school.name}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            )}
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              {school.name}
+            </h1>
+          </div>
           <span className="inline-flex px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-blue-950/80 text-cyan-300 border border-cyan-800/60 shadow-sm">
-            DepEd ID: {school.deped_school_id}
+            DepEd School ID: {school.deped_school_id}
           </span>
         </div>
 

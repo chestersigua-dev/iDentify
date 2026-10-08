@@ -407,7 +407,7 @@ export function AcademicAssignmentsView({
 
       {/* Teacher Assignment Modal */}
       {isAssignModalOpen && selectedTeacher && (
-        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
               <div className="flex items-center gap-3">
@@ -574,7 +574,7 @@ export function AcademicAssignmentsView({
 
       {/* Section Creation Modal */}
       {isSectionModalOpen && (
-        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <h3 className="font-bold text-white text-base">Add Custom DepEd Section</h3>
             <form onSubmit={handleCreateSection} className="space-y-3">
@@ -649,7 +649,7 @@ export function AcademicAssignmentsView({
 
       {/* Subject Creation Modal */}
       {isSubjectModalOpen && (
-        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+        <div className="fixed inset-0 z-50 glass-modal-backdrop bg-slate-950/60 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <h3 className="font-bold text-white text-base">Add DepEd Curriculum Subject</h3>
             <form onSubmit={handleCreateSubject} className="space-y-3">

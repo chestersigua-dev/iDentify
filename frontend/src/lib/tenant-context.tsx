@@ -37,13 +37,82 @@ interface TenantContextType {
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
+export function loadEffectiveSchool(base?: School): School {
+  let res: School = { ...(base || DEFAULT_SCHOOL) };
+  if (typeof window !== 'undefined') {
+    try {
+      const savedSelected = localStorage.getItem('identify_selected_school');
+      if (savedSelected) {
+        const parsed = JSON.parse(savedSelected);
+        if (parsed && (parsed.name || parsed.id)) {
+          res = { ...res, ...parsed };
+        }
+      }
+      const savedSettings = localStorage.getItem('identify_school_settings');
+      if (savedSettings) {
+        const s = JSON.parse(savedSettings);
+        if (s) {
+          res = {
+            ...res,
+            name: s.school_name || res.name,
+            short_name: s.short_name || s.school_name || res.short_name,
+            deped_school_id: s.school_id || res.deped_school_id,
+            logo_url: s.logo_url || res.logo_url,
+            division: s.division || res.division,
+            region: s.region || res.region,
+            district: s.district || res.district,
+            barangay: s.barangay || res.barangay,
+            municipality_city: s.municipality_city || res.municipality_city,
+            province: s.province || res.province,
+            school_head_name: s.school_head_name || res.school_head_name,
+            school_head_title: s.school_head_title || res.school_head_title,
+            contact_phone: s.contact_number || res.contact_phone,
+            contact_email: s.email || res.contact_email,
+          };
+        }
+      }
+    } catch {}
+  }
+  return res;
+}
+
 export function TenantProvider({ children }: { children: React.ReactNode }) {
-  const [school, setSchool] = useState<School>(DEFAULT_SCHOOL);
+  const [school, setSchoolState] = useState<School>(DEFAULT_SCHOOL);
   const [authenticatedUser, setAuthenticatedUser] = useState<UserAccount>(INITIAL_USERS[0]);
   const [spoofedUser, setSpoofedUser] = useState<UserAccount | null>(null);
   const [availableSchools, setAvailableSchools] = useState<School[]>([DEFAULT_SCHOOL]);
 
+  const setSchool = (newSchool: School) => {
+    const effective = loadEffectiveSchool(newSchool);
+    setSchoolState(effective);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('identify_selected_school', JSON.stringify(effective));
+        const currentSettings = apiClient.getSchoolSettings();
+        const updatedSettings = {
+          ...currentSettings,
+          school_name: effective.name,
+          school_id: effective.deped_school_id,
+          logo_url: effective.logo_url,
+          division: effective.division,
+          region: effective.region,
+          school_head_name: effective.school_head_name,
+          school_head_title: effective.school_head_title,
+          contact_number: effective.contact_phone,
+          email: effective.contact_email,
+        };
+        localStorage.setItem('identify_school_settings', JSON.stringify(updatedSettings));
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('identify:school-updated', { detail: effective }));
+      } catch {}
+    }
+  };
+
   useEffect(() => {
+    // 0. Initialize effective school from persistence immediately
+    const initialSchool = loadEffectiveSchool();
+    setSchoolState(initialSchool);
+
     // 1. Restore authenticated session user
     let realAuthUser = INITIAL_USERS[0];
     try {
@@ -88,18 +157,52 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
       setSpoofedUser(null);
     }
 
-    // 3. Fetch schools
+    // 3. Fetch schools from backend and overlay persistent institutional settings
     apiClient.getAllSchools().then((schools) => {
-      setAvailableSchools(schools);
-      if (schools.length > 0) {
-        setSchool(schools[0]);
+      if (schools && schools.length > 0) {
+        const enrichedList = schools.map((s, idx) => (idx === 0 ? loadEffectiveSchool(s) : s));
+        setAvailableSchools(enrichedList);
+        setSchoolState(enrichedList[0]);
+      } else {
+        const effective = loadEffectiveSchool();
+        setAvailableSchools([effective]);
+        setSchoolState(effective);
       }
     });
+
+    // 4. Synchronize when institutional settings change across components or tabs
+    const handleSync = () => {
+      setSchoolState((prev) => loadEffectiveSchool(prev));
+    };
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('identify:school-updated', handleSync);
+
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('identify:school-updated', handleSync);
+    };
   }, []);
+
+  // Dynamically update document.title and tab favicon to reflect the institutional identity
+  useEffect(() => {
+    if (typeof document !== 'undefined' && school?.name) {
+      document.title = `${school.name} (DepEd ID: ${school.deped_school_id}) | iDentify DepEd SaaS`;
+      if (school.logo_url) {
+        let link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        link.href = school.logo_url;
+      }
+    }
+  }, [school]);
 
   const refreshSchools = async () => {
     const list = await apiClient.getAllSchools();
-    setAvailableSchools(list);
+    const enrichedList = list.map((s, idx) => (idx === 0 ? loadEffectiveSchool(s) : s));
+    setAvailableSchools(enrichedList);
   };
 
   const isSuperAdminSession = authenticatedUser.role === 'SUPER_ADMIN';

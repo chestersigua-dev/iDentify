@@ -48,15 +48,23 @@ let SchoolsController = class SchoolsController {
             data: school,
         };
     }
-    async updateSchool(id, body, req) {
-        const updated = await this.schoolsService.update(id, body, req?.user?.id);
+    async updateSchool(id, body, headerRole, queryRole, req) {
+        const actorRole = req?.user?.role || headerRole || queryRole || body?.actorRole || 'PRINCIPAL';
+        if (actorRole !== 'SUPER_ADMIN' && actorRole !== 'PRINCIPAL') {
+            throw new common_1.ForbiddenException('Only Super Administrator and School Head (Principal) are authorized to modify institutional identity and accreditation details.');
+        }
+        const updated = await this.schoolsService.update(id, body, req?.user?.id, actorRole);
         return {
             success: true,
             message: 'School details updated successfully.',
             data: updated,
         };
     }
-    async purgeSchool(id, dto, req) {
+    async purgeSchool(id, dto, headerRole, req) {
+        const actorRole = req?.user?.role || headerRole || 'SUPER_ADMIN';
+        if (actorRole !== 'SUPER_ADMIN') {
+            throw new common_1.ForbiddenException('Exclusive operation: Only Super Administrator can perform cascading school deletion.');
+        }
         const adminId = req?.user?.id || '00000000-0000-0000-0000-000000000001';
         const result = await this.schoolsService.purgeSchoolCascade(id, dto, adminId, req.ip);
         return result;
@@ -103,18 +111,21 @@ __decorate([
     (0, common_1.Put)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
-    __param(2, (0, common_1.Req)()),
+    __param(2, (0, common_1.Headers)('x-user-role')),
+    __param(3, (0, common_1.Query)('actorRole')),
+    __param(4, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:paramtypes", [String, Object, String, String, Object]),
     __metadata("design:returntype", Promise)
 ], SchoolsController.prototype, "updateSchool", null);
 __decorate([
     (0, common_1.Delete)(':id/purge-cascade'),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
-    __param(2, (0, common_1.Req)()),
+    __param(2, (0, common_1.Headers)('x-user-role')),
+    __param(3, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:paramtypes", [String, Object, String, Object]),
     __metadata("design:returntype", Promise)
 ], SchoolsController.prototype, "purgeSchool", null);
 __decorate([

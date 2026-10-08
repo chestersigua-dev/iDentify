@@ -16,12 +16,12 @@ export declare class SchoolsController {
         message: string;
         data: any;
     }>;
-    updateSchool(id: string, body: any, req: any): Promise<{
+    updateSchool(id: string, body: any, headerRole: string, queryRole: string, req: any): Promise<{
         success: boolean;
         message: string;
         data: any;
     }>;
-    purgeSchool(id: string, dto: PurgeSchoolDto, req: any): Promise<{
+    purgeSchool(id: string, dto: PurgeSchoolDto, headerRole: string, req: any): Promise<{
         success: boolean;
         message: string;
     }>;

@@ -4,15 +4,18 @@ const core_1 = require("@nestjs/core");
 const app_module_1 = require("./app.module");
 const common_1 = require("@nestjs/common");
 const cookieParser = require("cookie-parser");
+const express_1 = require("express");
 async function bootstrap() {
     const logger = new common_1.Logger('iDentifyBootstrap');
-    const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    const app = await core_1.NestFactory.create(app_module_1.AppModule, { bodyParser: false });
+    app.use((0, express_1.json)({ limit: '25mb' }));
+    app.use((0, express_1.urlencoded)({ limit: '25mb', extended: true }));
     app.use(cookieParser());
     app.enableCors({
         origin: true,
         credentials: true,
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-        allowedHeaders: 'Content-Type, Accept, Authorization, X-School-Id, X-Requested-With',
+        allowedHeaders: 'Content-Type, Accept, Authorization, X-School-Id, X-Requested-With, x-user-role, X-User-Role',
     });
     const port = process.env.PORT || 4000;
     await app.listen(port);
